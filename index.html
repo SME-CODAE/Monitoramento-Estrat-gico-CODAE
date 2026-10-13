@@ -1,0 +1,3136 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel de Metas CODAE</title>
+  
+  <!-- CODAE Favicon -->
+  <link rel="icon" type="image/jpeg" href="https://painel-de-metas-two.vercel.app/codae_logo.jpg">
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- Chart.js & Supabase JS -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.min.js"></script>
+  
+  <!-- App Stylesheet -->
+  <link rel="stylesheet" href="https://painel-de-metas-two.vercel.app/style.css">
+</head>
+<body>
+
+  <!-- PAGE HEADER -->
+  <header class="page-header">
+    <div class="page-header-left">
+      <div class="logo-mark">
+        <img src="https://painel-de-metas-two.vercel.app/codae_logo.jpg" id="codaeLogoImg" alt="Logo CODAE" />
+      </div>
+      <div class="page-title-wrap">
+        <h1 id="headerTitle" class="page-title-main" contenteditable="true" title="Clique para editar o título">
+          Painel de Acompanhamento de Metas
+        </h1>
+        <p id="headerSubtitle" class="page-subtitle" contenteditable="true" title="Clique para editar o subtítulo">
+          Coordenadoria de Alimentação Escolar - CODAE
+        </p>
+      </div>
+    </div>
+    
+    <div class="header-actions">
+      <div class="theme-toggle">
+        <label for="themeSelect">TEMA</label>
+        <select id="themeSelect">
+          <option value="light">Claro</option>
+          <option value="dark">Escuro</option>
+        </select>
+      </div>
+      
+      <!-- Manage Directorates Button -->
+      <button id="btnGerenciarDiretorias" class="btn btn-outline">
+        <i class="fa-solid fa-palette"></i> Diretorias
+      </button>
+
+      <!-- Cadastro Button -->
+      <button id="btnNovaEvolucao" class="btn btn-primary">
+        <i class="fa-solid fa-plus"></i> Cadastro
+      </button>
+    </div>
+  </header>
+
+  <!-- TABS BAR -->
+  <nav class="tabs-bar">
+    <button class="tab-btn active" data-tab="visao-mensal">Visão Mensal</button>
+    <button class="tab-btn" data-tab="evolucao-historica">Evolução Histórica</button>
+    <button class="tab-btn" data-tab="historico-anos">Histórico de Anos Anteriores</button>
+  </nav>
+
+  <!-- MAIN CONTENT CONTAINER -->
+  <main class="main-content">
+    
+    <!-- TAB 1: VISÃO MENSAL -->
+    <section id="tab-visao-mensal" class="tab-content active">
+      
+      <!-- Mes Reference Badge -->
+      <div class="mes-badge">
+        <i class="fa-solid fa-calendar-days"></i>
+        <span>Mês de Referência:</span>
+        <span id="displayRefMonthBadge">Fevereiro / 2026</span>
+      </div>
+
+      <!-- KPI Indicators Grid (8 Main Indicators) -->
+      <style id="kpi-extra-status-styles">
+        #tab-visao-mensal .kpi-grid.kpi-grid-8 {
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+        #tab-visao-mensal .kpi-card.encerrada {
+          border-top: 3px solid #475569;
+        }
+        #tab-visao-mensal .kpi-card.encerrada .kpi-num {
+          color: #475569;
+        }
+        #tab-visao-mensal .kpi-card.pausada {
+          border-top: 3px solid #7c3aed;
+        }
+        #tab-visao-mensal .kpi-card.pausada .kpi-num {
+          color: #7c3aed;
+        }
+        @media (max-width: 900px) {
+          #tab-visao-mensal .kpi-grid.kpi-grid-8 {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+        }
+        @media (max-width: 520px) {
+          #tab-visao-mensal .kpi-grid.kpi-grid-8 {
+            grid-template-columns: 1fr;
+          }
+        }
+      </style>
+      <div class="kpi-grid kpi-grid-8">
+        <div class="kpi-card total">
+          <div id="kpiTotal" class="kpi-num">0</div>
+          <div class="kpi-lbl">Total Registros</div>
+          <div class="kpi-sub">Metas do mês</div>
+        </div>
+        
+        <div class="kpi-card ok">
+          <div id="kpiConcluidas" class="kpi-num">0</div>
+          <div class="kpi-lbl">Concluídas</div>
+          <div class="kpi-sub">Finalizadas</div>
+        </div>
+
+        <div class="kpi-card ea">
+          <div id="kpiEmAndamento" class="kpi-num">0</div>
+          <div class="kpi-lbl">Em Andamento</div>
+          <div class="kpi-sub">Em execução</div>
+        </div>
+
+        <div class="kpi-card at">
+          <div id="kpiAtrasadas" class="kpi-num">0</div>
+          <div class="kpi-lbl">Atrasadas</div>
+          <div class="kpi-sub">Requerem atenção</div>
+        </div>
+
+        <div class="kpi-card ni">
+          <div id="kpiNaoIniciadas" class="kpi-num">0</div>
+          <div class="kpi-lbl">Não Iniciadas</div>
+          <div class="kpi-sub">Planejamento</div>
+        </div>
+
+        <div class="kpi-card nao-informado">
+          <div id="kpiNaoInformadas" class="kpi-num">0</div>
+          <div class="kpi-lbl">Não Respondida</div>
+          <div class="kpi-sub">Pendente</div>
+        </div>
+
+        <div class="kpi-card encerrada">
+          <div id="kpiEncerradas" class="kpi-num">0</div>
+          <div class="kpi-lbl">Encerradas</div>
+          <div class="kpi-sub">Finalizadas administrativamente</div>
+        </div>
+
+        <div class="kpi-card pausada">
+          <div id="kpiPausadas" class="kpi-num">0</div>
+          <div class="kpi-lbl">Pausadas</div>
+          <div class="kpi-sub">Temporariamente suspensas</div>
+        </div>
+      </div>
+
+      <!-- Analytics Charts Row -->
+      <div class="charts-row">
+        <!-- Donut Chart Card -->
+        <div class="chart-card">
+          <h3>Distribuição por Status</h3>
+          <div class="chart-wrapper-box">
+            <canvas id="donutChart"></canvas>
+          </div>
+          <div id="pieLegend" class="pie-legend"></div>
+        </div>
+
+        <!-- Stacked Bar Chart Card -->
+        <div class="chart-card">
+          <h3>Metas por Diretoria e Status</h3>
+          <div class="chart-wrapper-box" style="height: 230px;">
+            <canvas id="stackedBarChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Unit Filter Pills (Dynamic Container) -->
+      <div id="unitPillsContainer" class="unit-pills">
+        <!-- Dynamically rendered pills with fixed directorate colors -->
+      </div>
+
+      <!-- Filter Bar -->
+      <div class="filter-bar">
+        <div class="filter-group">
+          <label for="selectMesRef">Mês</label>
+          <select id="selectMesRef">
+            <option value="Janeiro">Janeiro</option>
+            <option value="Fevereiro">Fevereiro</option>
+            <option value="Março">Março</option>
+            <option value="Abril">Abril</option>
+            <option value="Maio">Maio</option>
+            <option value="Junho">Junho</option>
+            <option value="Julho">Julho</option>
+            <option value="Agosto">Agosto</option>
+            <option value="Setembro">Setembro</option>
+            <option value="Outubro">Outubro</option>
+            <option value="Novembro">Novembro</option>
+            <option value="Dezembro">Dezembro</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label for="selectAnoRef">Ano</label>
+          <select id="selectAnoRef">
+            <option value="2026">2026</option>
+            <option value="2025">2025</option>
+            <option value="2024">2024</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label for="filterStatusSelect">Status</label>
+          <select id="filterStatusSelect">
+            <option value="TODOS">Todos os Status</option>
+            <option value="Atrasada">Atrasadas</option>
+            <option value="Não iniciada">Não iniciadas</option>
+            <option value="Em andamento">Em andamento</option>
+            <option value="Concluída">Concluídas</option>
+            <option value="Não respondida">Não respondida</option>
+            <option value="Encerrada">Encerrada</option>
+            <option value="Pausada">Pausada</option>
+          </select>
+        </div>
+
+        <div class="filter-group" style="flex: 1;">
+          <label for="searchInput">Busca Textual</label>
+          <input type="text" id="searchInput" placeholder="Buscar por código, meta, responsável ou diretoria..." />
+        </div>
+
+        <button id="btnLimparFiltros" class="btn btn-outline">
+          <i class="fa-solid fa-filter-circle-xmark"></i> Limpar Filtros
+        </button>
+      </div>
+
+      <!-- Goals List Container (Grouped, Ordered, & Drag-and-Drop enabled) -->
+      <div id="goalsListContainer" class="metas-list">
+        <!-- Dynamically rendered collapsible meta cards -->
+      </div>
+
+    </section>
+
+    <!-- TAB 2: EVOLUÇÃO HISTÓRICA -->
+    <section id="tab-evolucao-historica" class="tab-content" style="display: none;">
+      <div class="macro-section">
+        <h3>Evolução da Quantidade de Metas por Status (Janeiro a Dezembro)</h3>
+        <div style="height: 320px; position: relative;">
+          <canvas id="lineEvolutionChart"></canvas>
+        </div>
+      </div>
+
+      <div class="macro-section">
+        <h3>Matriz de Evolução Individual das Metas (Organizadas por Diretoria)</h3>
+        <div style="overflow-x: auto;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: center;">
+            <thead>
+              <tr style="border-bottom: 2px solid #e5e7eb; color: #6b7280; text-transform: uppercase;">
+                <th style="text-align: left; padding: 10px;">Meta / Diretoria</th>
+                <th>Jan</th><th>Fev</th><th>Mar</th><th>Abr</th><th>Mai</th><th>Jun</th>
+                <th>Jul</th><th>Ago</th><th>Set</th><th>Out</th><th>Nov</th><th>Dez</th>
+              </tr>
+            </thead>
+            <tbody id="evolutionMatrixBody">
+              <!-- Dynamically populated matrix rows grouped by directorate -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: HISTÓRICO DE ANOS ANTERIORES -->
+    <section id="tab-historico-anos" class="tab-content" style="display: none;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;">
+        <h2 style="font-size: 16px; font-weight: 600;">Registros Arquivados por Ano</h2>
+        <button id="btnExcluirAnoGeral" class="btn btn-danger">
+          <i class="fa-solid fa-trash"></i> Excluir Ano
+        </button>
+      </div>
+
+      <div id="yearHistoryContainer" style="display: flex; flex-direction: column; gap: 18px;">
+        <!-- Dynamically populated year sections (collapsible) -->
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODAL: GERENCIAMENTO DE DIRETORIAS (EDIÇÃO E EXCLUSÃO) -->
+  <div id="manageDirectoratesModal" class="modal-overlay">
+    <div class="modal-box" style="max-width: 580px;">
+      <div class="modal-header">
+        <h2>Gerenciamento de Diretorias / Divisões</h2>
+        <button class="modal-close" data-close-modal="manageDirectoratesModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+          <p style="font-size: 13px; color: #4b5563; margin: 0;">
+            Altere o nome, a cor ou exclua as diretorias do painel.
+          </p>
+          <button id="btnNovaDiretoriaModal" type="button" class="btn btn-primary btn-sm">
+            <i class="fa-solid fa-plus"></i> Criar Diretoria
+          </button>
+        </div>
+        <div id="directoratesListContainer" style="display: flex; flex-direction: column; gap: 10px;">
+          <!-- Dynamically populated directorate list items with edit and delete controls -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" data-close-modal="manageDirectoratesModal">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: EDITAR DIRETOIA INDIVIDUAL -->
+  <div id="editDirectorateModal" class="modal-overlay">
+    <div class="modal-box" style="max-width: 440px;">
+      <div class="modal-header">
+        <h2 id="editDirectorateTitle">Editar Diretoria</h2>
+        <button class="modal-close" data-close-modal="editDirectorateModal">&times;</button>
+      </div>
+      <form id="editDirectorateForm">
+        <div class="modal-body">
+          <input type="hidden" id="editDirectorateOldName" />
+          <div class="form-full">
+            <label class="form-label" for="editDirectorateName">Nome da Diretoria <span class="req">*</span></label>
+            <input type="text" id="editDirectorateName" class="form-control" required />
+          </div>
+          <div class="form-full">
+            <label class="form-label" for="editDirectorateColor">Cor da Diretoria (Color Picker / HEX)</label>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <input type="color" id="editDirectorateColor" class="form-control" style="width: 50px; height: 38px; padding: 2px; cursor: pointer;" />
+              <input type="text" id="editDirectorateHex" class="form-control" placeholder="#177c54" maxlength="7" style="flex: 1;" />
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" data-close-modal="editDirectorateModal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: CADASTRO / EDIÇÃO DE META -->
+  <div id="goalModal" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2 id="modalGoalTitle">Cadastrar Evolução de Meta</h2>
+        <button class="modal-close" data-close-modal="goalModal">&times;</button>
+      </div>
+
+      <form id="goalForm">
+        <div class="modal-body">
+          <input type="hidden" id="formGoalId" />
+          
+          <div class="form-row">
+            <div>
+              <label class="form-label" for="formCodigo">Código <span class="req">*</span></label>
+              <input type="text" id="formCodigo" class="form-control" placeholder="Ex: META-01" required />
+            </div>
+
+            <div>
+              <label class="form-label" for="formDiretoria">Diretoria / Divisão <span class="req">*</span></label>
+              <select id="formDiretoria" class="form-control form-select" required>
+                <!-- Dynamically populated options -->
+              </select>
+            </div>
+          </div>
+
+          <!-- Hidden Container for Custom Directorate Addition -->
+          <div id="boxCustomDiretoria" class="form-full" style="display: none;">
+            <div class="form-row">
+              <div>
+                <label class="form-label" for="formDiretoriaCustom">Nome da Nova Diretoria / Divisão <span class="req">*</span></label>
+                <input type="text" id="formDiretoriaCustom" class="form-control" placeholder="Digite o nome..." />
+              </div>
+              <div>
+                <label class="form-label" for="formDiretoriaColor">Cor da Diretoria (Color Picker / HEX)</label>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                  <input type="color" id="formDiretoriaColor" class="form-control" value="#177c54" style="width: 50px; height: 38px; padding: 2px; cursor: pointer;" />
+                  <input type="text" id="formDiretoriaHex" class="form-control" value="#177c54" placeholder="#177c54" maxlength="7" style="flex: 1;" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-full">
+            <label class="form-label" for="formNomeMeta">Nome da Meta <span class="req">*</span></label>
+            <input type="text" id="formNomeMeta" class="form-control" placeholder="Descrição completa da meta" required />
+          </div>
+
+          <div class="form-row">
+            <div>
+              <label class="form-label" for="formResponsavel">Responsável <span class="req">*</span></label>
+              <input type="text" id="formResponsavel" class="form-control" placeholder="Nome do responsável" required />
+            </div>
+
+            <div>
+              <label class="form-label" for="formMes">Mês Referência <span class="req">*</span></label>
+              <select id="formMes" class="form-control form-select" required>
+                <option value="Janeiro">Janeiro</option>
+                <option value="Fevereiro">Fevereiro</option>
+                <option value="Março">Março</option>
+                <option value="Abril">Abril</option>
+                <option value="Maio">Maio</option>
+                <option value="Junho">Junho</option>
+                <option value="Julho">Julho</option>
+                <option value="Agosto">Agosto</option>
+                <option value="Setembro">Setembro</option>
+                <option value="Outubro">Outubro</option>
+                <option value="Novembro">Novembro</option>
+                <option value="Dezembro">Dezembro</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div>
+              <label class="form-label" for="formAno">Ano Referência <span class="req">*</span></label>
+              <input type="number" id="formAno" class="form-control" value="2026" min="2020" max="2035" required />
+            </div>
+
+            <div>
+              <label class="form-label" for="formStatus">Status da Meta <span class="req">*</span></label>
+              <select id="formStatus" class="form-control form-select" required>
+                <option value="Não respondida">-- Selecione o Status --</option>
+                <option value="Em andamento">Em andamento</option>
+                <option value="Atrasada">Atrasada</option>
+                <option value="Não iniciada">Não iniciada</option>
+                <option value="Concluída">Concluída</option>
+                <option value="Não respondida">Não respondida</option>
+                <option value="Encerrada">Encerrada</option>
+                <option value="Pausada">Pausada</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- META REPACTUADA OPTIONAL TAG TOGGLE -->
+          <div style="margin-bottom: 14px; padding: 10px 14px; background: #fff0f7; border: 1px solid #ffb3e0; border-radius: 8px; display: flex; align-items: center; justify-content: space-between;">
+            <label for="formIsRepactuada" style="font-size: 13px; font-weight: 700; color: #800048; cursor: pointer; display: flex; align-items: center; gap: 8px; margin: 0;">
+              <input type="checkbox" id="formIsRepactuada" style="width: 17px; height: 17px; accent-color: #ff1493; cursor: pointer;" />
+              <i class="fa-solid fa-handshake-simple" style="color: #ff1493;"></i> Tag Repactuada (Cronograma Revisado)
+            </label>
+            <span style="font-size: 11px; color: #9d174d; font-weight: 500;">Opcional</span>
+          </div>
+
+          <!-- HISTÓRICO DE REPACTUAÇÃO MANUAL TEXTAREA -->
+          <div id="boxHistoricoRepactuacao" style="display: none; margin-bottom: 14px;">
+            <label class="form-label" for="diagHistoricoRepactuacao" style="color: #ff1493;">Histórico de repactuação (Anotações)</label>
+            <textarea id="diagHistoricoRepactuacao" class="form-control" placeholder="Registre o histórico e justificativa da repactuação..."></textarea>
+          </div>
+
+          <!-- DYNAMIC DIAGNOSTIC FORM SECTIONS -->
+
+          <!-- 1. EM ANDAMENTO -->
+          <div id="diagEmAndamentoBox" style="display: none; border-top: 1px solid #e5e7eb; padding-top: 14px; margin-top: 14px;">
+            <div class="status-fields-title">Diagnóstico: Em Andamento</div>
+            
+            <div class="form-row">
+              <div>
+                <label class="form-label">Fase</label>
+                <select id="diagFase" class="form-control form-select">
+                  <option value="">-- Selecione --</option>
+                  <option value="Reunião de alinhamento">Reunião de alinhamento</option>
+                  <option value="Cronograma de ações">Cronograma de ações</option>
+                  <option value="Escrita de projeto">Escrita de projeto</option>
+                  <option value="Piloto do projeto">Piloto do projeto</option>
+                  <option value="Teste com usuários">Teste com usuários</option>
+                  <option value="Coleta de feedbacks">Coleta de feedbacks</option>
+                  <option value="Melhorias">Melhorias</option>
+                  <option value="Resultados finais">Resultados finais</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="form-label">Andamento vs Mês Anterior</label>
+                <select id="diagAndamentoAnterior" class="form-control form-select">
+                  <option value="">-- Selecione --</option>
+                  <option value="Regrediu">Regrediu</option>
+                  <option value="Manteve-se">Manteve-se</option>
+                  <option value="Avançou">Avançou</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div>
+                <label class="form-label">Ações Executadas no Mês</label>
+                <select id="diagAcoesExecutadas" class="form-control form-select">
+                  <option value="">-- Selecione --</option>
+                  <option value="Não">Não</option>
+                  <option value="Parcialmente">Parcialmente</option>
+                  <option value="Sim">Sim</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="form-label">Cronograma</label>
+                <select id="diagCronograma" class="form-control form-select">
+                  <option value="">-- Selecione --</option>
+                  <option value="Atrasado">Atrasado</option>
+                  <option value="Dentro do prazo">Dentro do prazo</option>
+                  <option value="Adiantado">Adiantado</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div>
+                <label class="form-label">Resultados Esperados</label>
+                <select id="diagResultadosEsperados" class="form-control form-select">
+                  <option value="">-- Selecione --</option>
+                  <option value="Não">Não</option>
+                  <option value="Parcialmente">Parcialmente</option>
+                  <option value="Sim">Sim</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="form-label">Próximas Etapas Definidas</label>
+                <select id="diagProximasEtapas" class="form-control form-select">
+                  <option value="">-- Selecione --</option>
+                  <option value="Não">Não</option>
+                  <option value="Parcialmente">Parcialmente</option>
+                  <option value="Sim">Sim</option>
+                </select>
+              </div>
+            </div>
+
+            <div id="boxDescProximasEtapas" class="form-full" style="display: none;">
+              <label class="form-label">Descrição das Etapas Definidas</label>
+              <textarea id="diagDescProximasEtapas" class="form-control" placeholder="Descreva as próximas etapas..."></textarea>
+            </div>
+
+            <div class="form-full">
+              <label class="form-label">Risco de Não Cumprimento no Prazo</label>
+              <select id="diagRiscoPrazo" class="form-control form-select">
+                <option value="">-- Selecione --</option>
+                <option value="Não">Não</option>
+                <option value="Parcialmente">Parcialmente</option>
+                <option value="Sim">Sim</option>
+              </select>
+            </div>
+
+            <!-- UNLIMITED CUSTOM QUESTIONS BUILDER -->
+            <div style="margin-top: 14px; border-top: 1px dashed #d1d5db; padding-top: 12px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span class="form-label" style="margin: 0;">Perguntas Específicas Personalizadas</span>
+                <button type="button" id="btnAddCustomQuestion" class="btn btn-outline btn-sm">
+                  <i class="fa-solid fa-plus"></i> Adicionar Pergunta
+                </button>
+              </div>
+              <div id="customQuestionsContainer" style="display: flex; flex-direction: column; gap: 8px;"></div>
+            </div>
+          </div>
+
+          <!-- 2. ATRASADA -->
+          <div id="diagAtrasadaBox" style="display: none; border-top: 1px solid #e5e7eb; padding-top: 14px; margin-top: 14px;">
+            <div class="status-fields-title" style="color: #b21f2d;">Diagnóstico: Atrasada</div>
+
+            <div class="form-full">
+              <label class="form-label">Motivo do Atraso da Meta</label>
+              <textarea id="diagMotivoAtraso" class="form-control" placeholder="Descreva o motivo do atraso..."></textarea>
+            </div>
+
+            <div class="form-row">
+              <div>
+                <label class="form-label">Etapa do Atraso</label>
+                <select id="diagEtapaAtraso" class="form-control form-select">
+                  <option value="">-- Selecione --</option>
+                  <option value="Planejamento">Planejamento</option>
+                  <option value="Início da execução">Início da execução</option>
+                  <option value="Execução">Execução</option>
+                  <option value="Finalização">Finalização</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="form-label">Cenário vs Mês Anterior</label>
+                <select id="diagCenarioAnterior" class="form-control form-select">
+                  <option value="">-- Selecione --</option>
+                  <option value="Piorou">Piorou</option>
+                  <option value="Manteve-se">Manteve-se</option>
+                  <option value="Melhorou">Melhorou</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div>
+                <label class="form-label">Atraso Impactando Resultados</label>
+                <select id="diagImpactoResultados" class="form-control form-select">
+                  <option value="">-- Selecione --</option>
+                  <option value="Sim">Sim</option>
+                  <option value="Parcialmente">Parcialmente</option>
+                  <option value="Não">Não</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="form-label">Exclusivo da Área?</label>
+                <select id="diagResponsabilidadeExclusiva" class="form-control form-select">
+                  <option value="">-- Selecione --</option>
+                  <option value="Sim">Sim</option>
+                  <option value="Não">Não</option>
+                </select>
+              </div>
+            </div>
+
+            <div id="boxOutrasDivisoes" class="form-full" style="display: none;">
+              <label class="form-label">Quais outras divisões responsáveis?</label>
+              <div style="display: flex; gap: 10px; flex-wrap: wrap; font-size: 12px; margin-top: 4px;">
+                <label><input type="checkbox" name="divRespAtraso" value="Gabinete"> Gabinete</label>
+                <label><input type="checkbox" name="divRespAtraso" value="DINUTRE"> DINUTRE</label>
+                <label><input type="checkbox" name="divRespAtraso" value="DIGAE"> DIGAE</label>
+                <label><input type="checkbox" name="divRespAtraso" value="DICAE"> DICAE</label>
+                <label><input type="checkbox" name="divRespAtraso" value="DIFIR"> DIFIR</label>
+                <label><input type="checkbox" name="divRespAtraso" value="DILOG"> DILOG</label>
+                <label><input type="checkbox" name="divRespAtraso" value="Externo"> Externo</label>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div>
+                <label class="form-label">Ações Corretivas</label>
+                <select id="diagAcoesCorretivas" class="form-control form-select">
+                  <option value="">-- Selecione --</option>
+                  <option value="Definidas e em execução">Definidas e em execução</option>
+                  <option value="Definidas e ainda não executadas">Definidas e ainda não executadas</option>
+                  <option value="Não definidas">Não definidas</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="form-label">Novo Prazo Definido?</label>
+                <select id="diagNovoPrazo" class="form-control form-select">
+                  <option value="">-- Selecione --</option>
+                  <option value="Sim">Sim</option>
+                  <option value="Não">Não</option>
+                </select>
+              </div>
+            </div>
+
+            <div id="boxDescAcoesDefinidas" class="form-full">
+              <label class="form-label">Descrição das Ações Definidas</label>
+              <textarea id="diagDescAcoesDefinidas" class="form-control" placeholder="Descreva as ações..."></textarea>
+            </div>
+
+            <div id="boxNovoPrazoData" class="form-full" style="display: none;">
+              <label class="form-label">Novo Prazo Definido para:</label>
+              <input type="text" id="diagNovoPrazoData" class="form-control" placeholder="Ex: 30/04/2026" />
+            </div>
+
+            <div class="form-row">
+              <div>
+                <label class="form-label">Risco de Não Cumprimento</label>
+                <select id="diagRiscoCumprimento" class="form-control form-select">
+                  <option value="">-- Selecione --</option>
+                  <option value="Alto">Alto</option>
+                  <option value="Médio">Médio</option>
+                  <option value="Baixo">Baixo</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="form-label">Nível de Prioridade</label>
+                <select id="diagPrioridadeAtraso" class="form-control form-select">
+                  <option value="">-- Selecione --</option>
+                  <option value="Alto">Alto</option>
+                  <option value="Médio">Médio</option>
+                  <option value="Baixo">Baixo</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-full">
+              <label class="form-label">Necessidade de Apoio Institucional?</label>
+              <select id="diagApoioInstitucional" class="form-control form-select">
+                <option value="">-- Selecione --</option>
+                <option value="Sim">Sim</option>
+                <option value="Não">Não</option>
+              </select>
+            </div>
+
+            <div id="boxIndicacaoApoios" class="form-full" style="display: none;">
+              <label class="form-label">Indicação dos Apoios Necessários</label>
+              <textarea id="diagIndicacaoApoios" class="form-control" placeholder="Descreva os apoios necessários..."></textarea>
+            </div>
+          </div>
+
+          <!-- 3. NÃO INICIADA -->
+          <div id="diagNaoIniciadaBox" style="display: none; border-top: 1px solid #e5e7eb; padding-top: 14px; margin-top: 14px;">
+            <div class="status-fields-title" style="color: #5a5a6a;">Diagnóstico: Não Iniciada</div>
+
+            <div class="form-row">
+              <div>
+                <label class="form-label">Plano de Ação Estruturado</label>
+                <select id="diagPlanoAcao" class="form-control form-select">
+                  <option value="">-- Selecione --</option>
+                  <option value="Sim">Sim</option>
+                  <option value="Em desenvolvimento">Em desenvolvimento</option>
+                  <option value="Não">Não</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="form-label">Nível de Prioridade</label>
+                <select id="diagPrioridadeNaoIniciada" class="form-control form-select">
+                  <option value="">-- Selecione --</option>
+                  <option value="Alto">Alto</option>
+                  <option value="Médio">Médio</option>
+                  <option value="Baixo">Baixo</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-full">
+              <label class="form-label">Descrição do Plano de Ação</label>
+              <textarea id="diagDescPlanoAcao" class="form-control" placeholder="Descreva o plano..."></textarea>
+            </div>
+
+            <div class="form-full">
+              <label class="form-label">Dependências que Impedem o Início</label>
+              <div style="display: flex; gap: 10px; flex-wrap: wrap; font-size: 12px; margin-top: 4px;">
+                <label><input type="checkbox" name="depNaoIniciada" value="Interna"> Interna</label>
+                <label><input type="checkbox" name="depNaoIniciada" value="Articulação com outras áreas"> Articulação áreas</label>
+                <label><input type="checkbox" name="depNaoIniciada" value="Financeiro"> Financeiro</label>
+                <label><input type="checkbox" name="depNaoIniciada" value="Apoio institucional"> Apoio institucional</label>
+                <label><input type="checkbox" name="depNaoIniciada" value="Externo a CODAE"> Externo CODAE</label>
+                <label><input type="checkbox" name="depNaoIniciada" value="Outros"> Outros</label>
+                <label><input type="checkbox" name="depNaoIniciada" value="Não existem"> Não existem</label>
+              </div>
+            </div>
+
+            <div class="form-full">
+              <label class="form-label">Observações sobre Dependências</label>
+              <textarea id="diagObsDependencias" class="form-control" placeholder="Observações adicionais..."></textarea>
+            </div>
+
+            <div class="form-row">
+              <div>
+                <label class="form-label">Previsão Definida para Iniciar?</label>
+                <select id="diagPrevisaoInicio" class="form-control form-select">
+                  <option value="">-- Selecione --</option>
+                  <option value="Sim">Sim</option>
+                  <option value="Não">Não</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="form-label">Ações para Viabilizar Início?</label>
+                <select id="diagAcoesViabilizacao" class="form-control form-select">
+                  <option value="">-- Selecione --</option>
+                  <option value="Sim">Sim</option>
+                  <option value="Não">Não</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-full">
+              <label class="form-label">Descreva as Ações</label>
+              <textarea id="diagDescAcoesViabilizacao" class="form-control" placeholder="Descreva as ações viabilizadoras..."></textarea>
+            </div>
+          </div>
+
+          <!-- 4. CONCLUÍDA -->
+          <div id="diagConcluidaBox" style="display: none; border-top: 1px solid #e5e7eb; padding-top: 14px; margin-top: 14px;">
+            <div class="status-fields-title" style="color: #1e7e34;">Diagnóstico: Concluída</div>
+
+            <div class="form-full">
+              <label class="form-label">Observações sobre a Trajetória da Meta</label>
+              <textarea id="diagObsTrajetoria" class="form-control" placeholder="Resumo das conquistas e resultados..."></textarea>
+            </div>
+          </div>
+
+
+
+          <!-- 6. NÃO RESPONDIDA -->
+          <div id="diagNaoRespondidaBox" style="display: none; border-top: 1px solid #e5e7eb; padding-top: 14px; margin-top: 14px;">
+            <div class="status-fields-title" style="color: #c96a00;">Status: Não Respondida</div>
+
+            <div class="form-full">
+              <label class="form-label" for="diagJustificativaNaoPreenchido">Justificativas para que o monitoramento não foi preenchido</label>
+              <textarea id="diagJustificativaNaoPreenchido" class="form-control" placeholder="Descreva a justificativa para o não preenchimento..."></textarea>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" data-close-modal="goalModal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">
+            <i class="fa-solid fa-floppy-disk"></i> Salvar Evolução
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: AUTENTICAÇÃO DE SEGURANÇA -->
+  <div id="passwordModal" class="modal-overlay">
+    <div class="modal-box" style="max-width: 420px;">
+      <div class="modal-header">
+        <h2 style="color: #1a4f8c; display: flex; align-items: center; gap: 8px;">
+          <i class="fa-solid fa-lock"></i> Autenticação de Segurança
+        </h2>
+        <button class="modal-close" data-close-modal="passwordModal">&times;</button>
+      </div>
+      <form id="passwordForm">
+        <div class="modal-body" style="font-size: 13px;">
+          <p style="margin-bottom: 12px; color: #4b5563;">
+            Digite a senha para autorizar esta ação de alteração ou exclusão no painel:
+          </p>
+          <div class="form-full">
+            <label class="form-label" for="inputSecurityPassword">Senha de Segurança <span class="req">*</span></label>
+            <input type="password" id="inputSecurityPassword" class="form-control" placeholder="Digite a senha..." required />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" data-close-modal="passwordModal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">
+            <i class="fa-solid fa-key"></i> Autorizar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: HISTÓRICO COMPLETO DA META -->
+  <div id="historyDrawerModal" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2 id="historyDrawerTitle">Histórico Completo da Meta</h2>
+        <button class="modal-close" data-close-modal="historyDrawerModal">&times;</button>
+      </div>
+      <div id="historyDrawerBody" class="modal-body"></div>
+    </div>
+  </div>
+
+  <!-- MODAL: CONFIRMAÇÃO DE EXCLUSÃO -->
+  <div id="confirmModal" class="modal-overlay">
+    <div class="modal-box" style="max-width: 450px;">
+      <div class="modal-header">
+        <h2 id="confirmTitle" style="color: #b21f2d;">Confirmar Exclusão</h2>
+        <button class="modal-close" data-close-modal="confirmModal">&times;</button>
+      </div>
+      <div id="confirmBody" class="modal-body" style="font-size: 13px;">
+        Tem certeza que deseja prosseguir com esta ação?
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" data-close-modal="confirmModal">Cancelar</button>
+        <button type="button" id="confirmActionBtn" class="btn btn-danger">Confirmar Exclusão</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST CONTAINER -->
+  <div id="toastContainer"></div>
+
+  <!-- APP JAVASCRIPT MODULE -->
+  <script type="module">
+import { INITIAL_CONFIG } from 'https://painel-de-metas-two.vercel.app/mockData.js';
+
+/* ==========================================================================
+   SUPABASE CLIENT INITIALIZATION
+   ========================================================================== */
+const SUPABASE_URL = "https://ieywskuwgybypfsfglqe.supabase.co";
+const SUPABASE_KEY = "sb_publishable_iMnNFFPiqbCL3kn8Ur7zwQ_WgVdEa-b";
+
+let supabase = null;
+try {
+  if (window.supabase) {
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  }
+} catch (err) {
+  console.error("Erro ao inicializar cliente Supabase:", err);
+}
+
+function isValidUUID(value) {
+  return typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
+/* ==========================================================================
+   SCHEMA MAPPERS (FRONTEND <-> SUPABASE SCHEMA)
+   ========================================================================== */
+function mapMetaToDatabase(metaObj) {
+  const dbMeta = {
+    ano: Number(metaObj.ano),
+    mes: metaObj.mes,
+
+    unidade: metaObj.diretoria || 'CODAE',
+    meta: metaObj.nome_meta || '',
+
+    codigo: metaObj.codigo || null,
+    codigo_meta: metaObj.codigo || null,
+    nome_meta: metaObj.nome_meta || null,
+    diretoria: metaObj.diretoria || null,
+
+    status: metaObj.status || 'Não respondida',
+    responsavel: metaObj.responsavel || null,
+
+    diagnostico: JSON.stringify(metaObj.diagnostico || {}),
+    sort_order: Number(metaObj.sort_order || 0),
+    historico_repactuacao: metaObj.historico_repactuacao || null,
+
+    ativo: metaObj.ativo !== false,
+
+    criado_em: metaObj.criado_em || undefined,
+    atualizado_em: new Date().toISOString()
+  };
+
+  if (metaObj.id && isValidUUID(metaObj.id)) {
+    dbMeta.id = metaObj.id;
+  }
+
+  return dbMeta;
+}
+
+function mapDatabaseToMeta(row) {
+  let diagnostico = {};
+  if (row.diagnostico) {
+    try {
+      diagnostico = typeof row.diagnostico === 'string'
+        ? JSON.parse(row.diagnostico)
+        : (row.diagnostico || {});
+    } catch (e) {
+      diagnostico = {};
+    }
+  }
+
+  const isRepact = row.is_repactuada !== undefined
+    ? !!row.is_repactuada
+    : !!(row.historico_repactuacao || (diagnostico && diagnostico.is_repactuada));
+
+  return {
+    id: row.id,
+    codigo: row.codigo || row.codigo_meta || '',
+    nome_meta: row.nome_meta || row.meta || '',
+    diretoria: row.diretoria || row.unidade || 'CODAE',
+    responsavel: row.responsavel || '',
+    mes: row.mes,
+    ano: Number(row.ano),
+    status: row.status || 'Não respondida',
+    is_repactuada: isRepact,
+    ativo: row.ativo !== false,
+    diagnostico: diagnostico,
+    sort_order: Number(row.sort_order || 0),
+    historico_repactuacao: row.historico_repactuacao || (diagnostico ? diagnostico.historico_repactuacao : '') || '',
+    criado_em: row.criado_em,
+    atualizado_em: row.atualizado_em
+  };
+}
+
+/* ==========================================================================
+   GLOBAL APP STATE & SECURITY
+   ========================================================================== */
+const state = {
+  metas: [],
+  config: { ...INITIAL_CONFIG, customDirectoratesMap: {} },
+  selectedMes: null,
+  selectedAno: "2026",
+  selectedDiretoria: "TODAS",
+  selectedStatus: "TODOS",
+  searchText: "",
+  activeTab: "visao-mensal",
+  editingGoalId: null,
+  customQuestionsTemp: [],
+  isMasterAuthenticated: false,
+  pendingAuthCallback: null,
+  draggedMetaId: null
+};
+
+// Directorate Fixed HEX Color Single Source of Truth
+const DEFAULT_DIRECTORATES_MAP = {
+  "CODAE": "#177c54",
+  "DICAE": "#c5263c",
+  "DILOG": "#f16242",
+  "DIEDAN": "#e6b348",
+  "DINUTRE": "#aed143",
+  "Gabinete": "#503175"
+};
+
+const DEFAULT_DIRECTORATES = ['CODAE', 'Gabinete', 'DINUTRE', 'DIEDAN', 'DICAE', 'DILOG'];
+const MONTH_ORDER = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+
+function getDirectorateColor(dirName) {
+  if (!dirName) return '#5a6472';
+  if (state.config.customDirectoratesMap && state.config.customDirectoratesMap[dirName] && state.config.customDirectoratesMap[dirName] !== '__DELETED__') {
+    return state.config.customDirectoratesMap[dirName];
+  }
+  if (DEFAULT_DIRECTORATES_MAP[dirName] && (!state.config.customDirectoratesMap || state.config.customDirectoratesMap[dirName] !== '__DELETED__')) {
+    return DEFAULT_DIRECTORATES_MAP[dirName];
+  }
+  return '#5a6472';
+}
+
+/* ==========================================================================
+   CENTRALIZED BULLET INDICATOR CONFIGURATION
+   ========================================================================== */
+const BULLET_CONFIG = {
+  andamento_anterior: { "Regrediu": "red", "Manteve-se": "yellow", "Avançou": "green" },
+  acoes_executadas: { "Não": "red", "Parcialmente": "yellow", "Sim": "green" },
+  cronograma: { "Atrasado": "red", "Dentro do prazo": "blue", "Adiantado": "green" },
+  resultados_esperados: { "Não": "red", "Parcialmente": "yellow", "Sim": "green" },
+  proximas_etapas: { "Não": "red", "Parcialmente": "yellow", "Sim": "green" },
+  risco_prazo: { "Não": "red", "Parcialmente": "yellow", "Sim": "green" },
+
+  cenario_anterior: { "Piorou": "red", "Manteve-se": "yellow", "Melhorou": "green" },
+  impacto_resultados: { "Sim": "red", "Parcialmente": "yellow", "Não": "green" },
+  responsabilidade_exclusiva: { "Sim": "red", "Não": "green" },
+  acoes_corretivas: {
+    "Definidas e em execução": "green",
+    "Definidas e ainda não executadas": "yellow",
+    "Não definidas": "red"
+  },
+  risco_cumprimento: { "Alto": "red", "Médio": "yellow", "Baixo": "green" },
+  prioridade: { "Alto": "green", "Médio": "yellow", "Baixo": "red" },
+
+  plano_acao: { "Sim": "green", "Em desenvolvimento": "yellow", "Não": "red" },
+  prioridade_nao_iniciada: { "Alto": "green", "Médio": "yellow", "Baixo": "red" },
+  previsao_inicio: { "Sim": "green", "Não": "red" },
+  acoes_viabilizacao: { "Sim": "green", "Não": "red" }
+};
+
+function getSpecificBulletColorClass(fieldName, val) {
+  if (!val) return 'blue';
+  const v = val.toString().trim();
+  if (BULLET_CONFIG[fieldName] && BULLET_CONFIG[fieldName][v]) {
+    return BULLET_CONFIG[fieldName][v];
+  }
+  return 'blue';
+}
+
+// Chart instances
+let donutChartInst = null;
+let stackedBarChartInst = null;
+let lineEvolutionChartInst = null;
+
+/* ==========================================================================
+   DOM ELEMENTS CACHE
+   ========================================================================== */
+const elements = {
+  headerTitle: document.getElementById('headerTitle'),
+  headerSubtitle: document.getElementById('headerSubtitle'),
+  themeSelect: document.getElementById('themeSelect'),
+  btnGerenciarDiretorias: document.getElementById('btnGerenciarDiretorias'),
+  btnNovaEvolucao: document.getElementById('btnNovaEvolucao'),
+  tabButtons: document.querySelectorAll('.tab-btn'),
+  tabContents: document.querySelectorAll('.tab-content'),
+  
+  // Filters
+  selectMesRef: document.getElementById('selectMesRef'),
+  selectAnoRef: document.getElementById('selectAnoRef'),
+  displayRefMonthBadge: document.getElementById('displayRefMonthBadge'),
+  unitPillsContainer: document.getElementById('unitPillsContainer'),
+  searchInput: document.getElementById('searchInput'),
+  filterStatusSelect: document.getElementById('filterStatusSelect'),
+  btnLimparFiltros: document.getElementById('btnLimparFiltros'),
+  
+  // KPIs
+  kpiTotal: document.getElementById('kpiTotal'),
+  kpiConcluidas: document.getElementById('kpiConcluidas'),
+  kpiEmAndamento: document.getElementById('kpiEmAndamento'),
+  kpiAtrasadas: document.getElementById('kpiAtrasadas'),
+  kpiNaoIniciadas: document.getElementById('kpiNaoIniciadas'),
+  kpiRepactuadas: document.getElementById('kpiRepactuadas'),
+  kpiNaoInformadas: document.getElementById('kpiNaoInformadas'),
+  
+  // Goals List
+  goalsListContainer: document.getElementById('goalsListContainer'),
+  pieLegend: document.getElementById('pieLegend'),
+  
+  // Modals & Form
+  goalModal: document.getElementById('goalModal'),
+  modalGoalTitle: document.getElementById('modalGoalTitle'),
+  goalForm: document.getElementById('goalForm'),
+  formGoalId: document.getElementById('formGoalId'),
+  formCodigo: document.getElementById('formCodigo'),
+  formNomeMeta: document.getElementById('formNomeMeta'),
+  formDiretoria: document.getElementById('formDiretoria'),
+  boxCustomDiretoria: document.getElementById('boxCustomDiretoria'),
+  formDiretoriaCustom: document.getElementById('formDiretoriaCustom'),
+  formDiretoriaColor: document.getElementById('formDiretoriaColor'),
+  formDiretoriaHex: document.getElementById('formDiretoriaHex'),
+  formResponsavel: document.getElementById('formResponsavel'),
+  formMes: document.getElementById('formMes'),
+  formAno: document.getElementById('formAno'),
+  formStatus: document.getElementById('formStatus'),
+  
+  // Diagnostics
+  diagEmAndamentoBox: document.getElementById('diagEmAndamentoBox'),
+  diagAtrasadaBox: document.getElementById('diagAtrasadaBox'),
+  diagNaoIniciadaBox: document.getElementById('diagNaoIniciadaBox'),
+  diagConcluidaBox: document.getElementById('diagConcluidaBox'),
+  diagRepactuadaBox: document.getElementById('diagRepactuadaBox'),
+  diagNaoRespondidaBox: document.getElementById('diagNaoRespondidaBox'),
+  diagHistoricoRepactuacao: document.getElementById('diagHistoricoRepactuacao'),
+  
+  btnAddCustomQuestion: document.getElementById('btnAddCustomQuestion'),
+  customQuestionsContainer: document.getElementById('customQuestionsContainer'),
+  
+  // Directorates Manager Modal
+  manageDirectoratesModal: document.getElementById('manageDirectoratesModal'),
+  directoratesListContainer: document.getElementById('directoratesListContainer'),
+  editDirectorateModal: document.getElementById('editDirectorateModal'),
+  editDirectorateForm: document.getElementById('editDirectorateForm'),
+  editDirectorateOldName: document.getElementById('editDirectorateOldName'),
+  editDirectorateName: document.getElementById('editDirectorateName'),
+  editDirectorateColor: document.getElementById('editDirectorateColor'),
+  editDirectorateHex: document.getElementById('editDirectorateHex'),
+
+  // Password Modal
+  passwordModal: document.getElementById('passwordModal'),
+  passwordForm: document.getElementById('passwordForm'),
+  inputSecurityPassword: document.getElementById('inputSecurityPassword'),
+  
+  // Confirm Modal
+  confirmModal: document.getElementById('confirmModal'),
+  confirmTitle: document.getElementById('confirmTitle'),
+  confirmBody: document.getElementById('confirmBody'),
+  confirmActionBtn: document.getElementById('confirmActionBtn'),
+  
+  // History Drawer Modal
+  historyDrawerModal: document.getElementById('historyDrawerModal'),
+  historyDrawerTitle: document.getElementById('historyDrawerTitle'),
+  historyDrawerBody: document.getElementById('historyDrawerBody'),
+  
+  // Year Deletion
+  btnExcluirAnoGeral: document.getElementById('btnExcluirAnoGeral'),
+  yearHistoryContainer: document.getElementById('yearHistoryContainer'),
+  evolutionMatrixBody: document.getElementById('evolutionMatrixBody'),
+  
+  toastContainer: document.getElementById('toastContainer')
+};
+
+/* ==========================================================================
+   INITIALIZATION & DATA LOADING
+   ========================================================================== */
+document.addEventListener('DOMContentLoaded', async () => {
+  initTheme();
+  initHeaderAutoSave();
+  initTabsNavigation();
+  initFilterEvents();
+  initModalEvents();
+  initDirectoratesManagerEvents();
+  initSecurityPasswordEvents();
+  initDiagnosticFormListeners();
+  
+  await loadConfig();
+  await loadMetas();
+  
+  initRealtimeSubscription();
+  autoSelectLatestMonthYear();
+  renderAll();
+});
+
+/* ==========================================================================
+   SECURITY AUTHENTICATION SYSTEM
+   ========================================================================== */
+function requestSecurityAuthorization(actionCallback) {
+  if (state.isMasterAuthenticated) {
+    actionCallback();
+    return;
+  }
+  
+  state.pendingAuthCallback = actionCallback;
+  elements.inputSecurityPassword.value = '';
+  elements.passwordModal.classList.add('active');
+  setTimeout(() => elements.inputSecurityPassword.focus(), 100);
+}
+
+function initSecurityPasswordEvents() {
+  elements.passwordForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const enteredPassword = elements.inputSecurityPassword.value.trim();
+    
+    if (enteredPassword === "CODAE280417") {
+      state.isMasterAuthenticated = true;
+      closeModal('passwordModal');
+      showToast("Sessão Mestre ativada com sucesso!", "success");
+      if (state.pendingAuthCallback) {
+        const cb = state.pendingAuthCallback;
+        state.pendingAuthCallback = null;
+        cb();
+      }
+    } else if (enteredPassword === "CODAE2804") {
+      closeModal('passwordModal');
+      showToast("Ação autorizada.", "success");
+      if (state.pendingAuthCallback) {
+        const cb = state.pendingAuthCallback;
+        state.pendingAuthCallback = null;
+        cb();
+      }
+    } else {
+      showToast("Senha incorreta! Ação não autorizada.", "error");
+    }
+  });
+}
+
+/* --- Theme Management --- */
+function initTheme() {
+  const savedTheme = state.config.tema || 'light';
+  applyTheme(savedTheme);
+  
+  elements.themeSelect.value = savedTheme;
+  elements.themeSelect.addEventListener('change', (e) => {
+    const newTheme = e.target.value;
+    applyTheme(newTheme);
+    saveConfig({ tema: newTheme });
+  });
+}
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  document.body.setAttribute('data-theme', theme);
+  state.config.tema = theme;
+  
+  if (donutChartInst) renderCharts();
+}
+
+/* --- Header Inline Edit & Auto Save --- */
+function initHeaderAutoSave() {
+  const saveHeader = () => {
+    const titulo = elements.headerTitle.innerText.trim() || INITIAL_CONFIG.titulo;
+    const subtitulo = elements.headerSubtitle.innerText.trim() || INITIAL_CONFIG.subtitulo;
+    
+    if (titulo === state.config.titulo && subtitulo === state.config.subtitulo) return;
+    
+    requestSecurityAuthorization(async () => {
+      const ok = await saveConfig({ titulo, subtitulo });
+      if (ok) showToast('Título e subtítulo salvos no Supabase!', 'success');
+    });
+  };
+  
+  elements.headerTitle.addEventListener('blur', saveHeader);
+  elements.headerSubtitle.addEventListener('blur', saveHeader);
+  
+  elements.headerTitle.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); elements.headerTitle.blur(); }
+  });
+  elements.headerSubtitle.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); elements.headerSubtitle.blur(); }
+  });
+}
+
+/* ==========================================================================
+   SUPABASE PERSISTENCE ENGINE (EXACT SCHEMA MATCHING)
+   ========================================================================== */
+async function loadConfig() {
+  if (!supabase) {
+    showToast("Não foi possível conectar ao banco de dados.", "error");
+    return;
+  }
+  
+  try {
+    const { data, error } = await supabase
+      .from('painel_configuracoes')
+      .select('*')
+      .eq('id', 1)
+      .single();
+      
+    if (error && error.code !== 'PGRST116') {
+      console.error("====================================");
+      console.error("ERRO LOAD CONFIG SUPABASE");
+      console.error("message:", error.message);
+      console.error("details:", error.details);
+      console.error("hint:", error.hint);
+      console.error("code:", error.code);
+      console.error("====================================");
+      showToast("Não foi possível carregar as configurações do banco de dados.", "error");
+      return;
+    }
+    
+    if (data) {
+      state.config = {
+        titulo: data.titulo || INITIAL_CONFIG.titulo,
+        subtitulo: data.subtitulo || INITIAL_CONFIG.subtitulo,
+        tema: data.tema || 'light',
+        customDirectoratesMap: data.custom_directorates_map || {}
+      };
+      
+      elements.headerTitle.innerText = state.config.titulo;
+      elements.headerSubtitle.innerText = state.config.subtitulo;
+      applyTheme(state.config.tema);
+      if (elements.themeSelect) elements.themeSelect.value = state.config.tema;
+    }
+  } catch (e) {
+    console.error("Exceção ao carregar configurações do Supabase:", e);
+    showToast("Não foi possível carregar as configurações do banco de dados.", "error");
+  }
+}
+
+async function saveConfig(updates) {
+  state.config = { ...state.config, ...updates };
+  
+  if (!supabase) {
+    showToast("Não foi possível conectar ao banco de dados. Operação cancelada.", "error");
+    return false;
+  }
+  
+  try {
+    const payload = {
+      id: 1,
+      titulo: state.config.titulo || INITIAL_CONFIG.titulo,
+      subtitulo: state.config.subtitulo || INITIAL_CONFIG.subtitulo,
+      tema: state.config.tema || 'light',
+      custom_directorates_map: state.config.customDirectoratesMap || {},
+      atualizado_em: new Date().toISOString()
+    };
+    
+    const { error } = await supabase
+      .from('painel_configuracoes')
+      .upsert(payload, { onConflict: 'id' });
+      
+    if (error) {
+      console.error("====================================");
+      console.error("ERRO SAVE CONFIG SUPABASE");
+      console.error("message:", error.message);
+      console.error("details:", error.details);
+      console.error("hint:", error.hint);
+      console.error("code:", error.code);
+      console.error("data enviada:", payload);
+      console.error("====================================");
+      showToast("Não foi possível salvar as configurações no banco de dados.", "error");
+      return false;
+    }
+    
+    return true;
+  } catch (e) {
+    console.error("Exceção ao salvar configuração no Supabase:", e);
+    showToast("Não foi possível salvar as configurações no banco de dados.", "error");
+    return false;
+  }
+}
+
+async function loadMetas() {
+  if (!supabase) {
+    showToast("Não foi possível conectar ao banco de dados. Os dados exibidos podem não estar atualizados.", "error");
+    return;
+  }
+  
+  try {
+    // Carregamento direto da tabela real public.metas_codae ordenado por sort_order
+    let res = await supabase.from('metas_codae').select('*').eq('ativo', true).order('sort_order', { ascending: true });
+    
+    if (res.error || !res.data) {
+      res = await supabase.from('metas_codae').select('*').eq('ativo', true);
+    }
+    
+    if (res.error) {
+      console.error("====================================");
+      console.error("ERRO LOAD METAS SUPABASE");
+      console.error("message:", res.error.message);
+      console.error("details:", res.error.details);
+      console.error("hint:", res.error.hint);
+      console.error("code:", res.error.code);
+      console.error("====================================");
+      showToast("Não foi possível carregar as metas do banco de dados.", "error");
+      return;
+    }
+    
+    state.metas = (res.data || [])
+      .filter(row => row.ativo !== false)
+      .map(row => mapDatabaseToMeta(row));
+  } catch (e) {
+    console.error("Exceção ao carregar metas do Supabase:", e);
+    showToast("Não foi possível carregar as metas do banco de dados.", "error");
+  }
+}
+
+async function saveMetaToStore(metaObj) {
+  if (!supabase) {
+    showToast("Não foi possível conectar ao banco de dados. Salvação cancelada.", "error");
+    return false;
+  }
+
+  const dbMeta = mapMetaToDatabase(metaObj);
+  console.log("OBJETO MAPEADO ENVIADO AO SUPABASE:", dbMeta);
+
+  try {
+    let response;
+    if (dbMeta.id) {
+      // EDIT: UPDATE/UPSERT using existing UUID
+      response = await supabase
+        .from('metas_codae')
+        .upsert(dbMeta, { onConflict: 'id' })
+        .select()
+        .single();
+    } else {
+      // NEW RECORD: INSERT without ID (PostgreSQL auto-generates gen_random_uuid)
+      response = await supabase
+        .from('metas_codae')
+        .insert(dbMeta)
+        .select()
+        .single();
+    }
+
+    const { data, error } = response;
+
+    if (error) {
+      console.error("====================================");
+      console.error("ERRO REAL DO SUPABASE");
+      console.error("message:", error.message);
+      console.error("details:", error.details);
+      console.error("hint:", error.hint);
+      console.error("code:", error.code);
+      console.error("data enviada:", dbMeta);
+      console.error("====================================");
+
+      showToast(`Não foi possível salvar a meta no banco de dados. (Erro: ${error.code})`, "error");
+      return false;
+    }
+
+    console.log("META SALVA COM SUCESSO NO SUPABASE:", data);
+
+    // OBRIGATÓRIO: Receber o registro com o UUID real gerado pelo Supabase
+    metaObj.id = data.id;
+
+    // Atualiza o estado na memória somente após confirmação do Supabase
+    const idx = state.metas.findIndex(m => m.id === metaObj.id);
+    if (idx >= 0) {
+      state.metas[idx] = metaObj;
+    } else {
+      state.metas.push(metaObj);
+    }
+
+    return true;
+  } catch (e) {
+    console.error("Exceção ao salvar meta no Supabase:", e);
+    showToast("Não foi possível salvar a meta no banco de dados.", "error");
+    return false;
+  }
+}
+
+async function softDeleteMetaFromStore(metaId) {
+  if (!supabase) {
+    showToast("Não foi possível conectar ao banco de dados. Remoção cancelada.", "error");
+    return false;
+  }
+  
+  try {
+    const { error } = await supabase.from('metas_codae').update({ ativo: false, atualizado_em: new Date().toISOString() }).eq('id', metaId);
+    if (error) {
+      console.error("====================================");
+      console.error("ERRO DELETE META SUPABASE");
+      console.error("message:", error.message);
+      console.error("details:", error.details);
+      console.error("hint:", error.hint);
+      console.error("code:", error.code);
+      console.error("====================================");
+      showToast("Não foi possível remover a meta do banco de dados.", "error");
+      return false;
+    }
+    
+    state.metas = state.metas.filter(m => m.id !== metaId);
+    return true;
+  } catch (e) {
+    console.error("Exceção ao remover meta no Supabase:", e);
+    showToast("Não foi possível remover a meta do banco de dados.", "error");
+    return false;
+  }
+}
+
+function initRealtimeSubscription() {
+  if (!supabase || window.__codaeRealtimeSubscribed) return;
+  window.__codaeRealtimeSubscribed = true;
+  
+  supabase
+    .channel('public:codae_realtime_changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'metas_codae' }, async () => {
+      await loadMetas();
+      renderAll();
+      showToast('Dados de metas sincronizados via Realtime!', 'info');
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'painel_configuracoes' }, async () => {
+      await loadConfig();
+      renderAll();
+      showToast('Configurações do painel atualizadas via Realtime!', 'info');
+    })
+    .subscribe();
+}
+
+/* --- Auto Select Most Recent Month/Year --- */
+function autoSelectLatestMonthYear() {
+  if (state.metas.length === 0) {
+    state.selectedMes = "Fevereiro";
+    state.selectedAno = "2026";
+    return;
+  }
+  
+  const years = state.metas.map(m => parseInt(m.ano) || 2026);
+  const maxYear = Math.max(...years);
+  
+  const metasInMaxYear = state.metas.filter(m => (parseInt(m.ano) || 2026) === maxYear);
+  let maxMonthIdx = -1;
+  let maxMonthStr = "Fevereiro";
+  
+  metasInMaxYear.forEach(m => {
+    const idx = MONTH_ORDER.indexOf(m.mes);
+    if (idx > maxMonthIdx) {
+      maxMonthIdx = idx;
+      maxMonthStr = m.mes;
+    }
+  });
+  
+  state.selectedAno = maxYear.toString();
+  state.selectedMes = maxMonthStr;
+  
+  elements.selectAnoRef.value = state.selectedAno;
+  elements.selectMesRef.value = state.selectedMes;
+}
+
+/* ==========================================================================
+   TABS NAVIGATION
+   ========================================================================== */
+function initTabsNavigation() {
+  elements.tabButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tabKey = btn.dataset.tab;
+      state.activeTab = tabKey;
+      
+      elements.tabButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      
+      elements.tabContents.forEach(content => {
+        if (content.id === `tab-${tabKey}`) {
+          content.style.display = 'block';
+          content.classList.add('active');
+        } else {
+          content.style.display = 'none';
+          content.classList.remove('active');
+        }
+      });
+      
+      renderAll();
+    });
+  });
+}
+
+/* ==========================================================================
+   GERENCIAMENTO DE DIRETORIAS (EDIÇÃO E EXCLUSÃO)
+   ========================================================================== */
+function initDirectoratesManagerEvents() {
+  elements.btnGerenciarDiretorias.addEventListener('click', () => {
+    renderDirectoratesManagerList();
+    elements.manageDirectoratesModal.classList.add('active');
+  });
+
+  elements.editDirectorateForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    await saveDirectorateEdit();
+  });
+}
+
+function renderDirectoratesManagerList() {
+  const container = elements.directoratesListContainer;
+  container.innerHTML = '';
+
+  const allDirs = getAllDirectorates();
+
+  allDirs.forEach(dirName => {
+    const color = getDirectorateColor(dirName);
+    const item = document.createElement('div');
+    item.style.cssText = "display:flex; justify-content:space-between; align-items:center; padding:10px 14px; background:#f9fafb; border:1px solid #e5e7eb; border-radius:8px;";
+
+    item.innerHTML = `
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span style="width:18px; height:18px; border-radius:50%; background:${color}; display:inline-block;"></span>
+        <strong style="font-size:13px; color:#111827;">${dirName}</strong>
+      </div>
+      <div style="display:flex; gap:6px;">
+        <button class="btn btn-outline btn-sm btn-edit-dir" data-dir="${dirName}">
+          <i class="fa-solid fa-pen-to-square"></i> Editar
+        </button>
+        <button class="btn btn-danger btn-sm btn-del-dir" data-dir="${dirName}">
+          <i class="fa-solid fa-trash"></i> Excluir
+        </button>
+      </div>
+    `;
+
+    item.querySelector('.btn-edit-dir').addEventListener('click', () => {
+      openEditDirectorateModal(dirName);
+    });
+
+    item.querySelector('.btn-del-dir').addEventListener('click', () => {
+      requestSecurityAuthorization(() => triggerDeleteDirectorate(dirName));
+    });
+
+    container.appendChild(item);
+  });
+}
+
+function openEditDirectorateModal(dirName) {
+  elements.editDirectorateOldName.value = dirName;
+  elements.editDirectorateName.value = dirName;
+  const currentColor = getDirectorateColor(dirName);
+  elements.editDirectorateColor.value = currentColor;
+  elements.editDirectorateHex.value = currentColor;
+
+  elements.editDirectorateColor.oninput = (e) => { elements.editDirectorateHex.value = e.target.value; };
+  elements.editDirectorateHex.oninput = (e) => {
+    if (/^#[0-9A-F]{6}$/i.test(e.target.value)) elements.editDirectorateColor.value = e.target.value;
+  };
+
+  elements.editDirectorateModal.classList.add('active');
+}
+
+async function saveDirectorateEdit() {
+  const oldName = elements.editDirectorateOldName.value.trim();
+  const newName = elements.editDirectorateName.value.trim();
+  const newColor = elements.editDirectorateHex.value.trim() || elements.editDirectorateColor.value;
+
+  if (!newName) {
+    showToast("O nome da diretoria não pode ficar vazio.", "error");
+    return;
+  }
+
+  if (!state.config.customDirectoratesMap) state.config.customDirectoratesMap = {};
+
+  if (oldName !== newName) {
+    state.config.customDirectoratesMap[oldName] = '__DELETED__';
+  }
+  state.config.customDirectoratesMap[newName] = newColor;
+
+  // Save config to Supabase
+  await saveConfig({ customDirectoratesMap: state.config.customDirectoratesMap });
+
+  // Safely update linked goals' diretoria in state & Supabase if name changed
+  if (oldName !== newName) {
+    const linkedMetas = state.metas.filter(m => m.diretoria === oldName);
+    for (const m of linkedMetas) {
+      m.diretoria = newName;
+      await saveMetaToStore(m);
+    }
+  }
+
+  closeModal('editDirectorateModal');
+  renderDirectoratesManagerList();
+  renderAll();
+  showToast(`Diretoria "${newName}" atualizada com sucesso!`, "success");
+}
+
+function triggerDeleteDirectorate(dirName) {
+  const linkedMetasCount = state.metas.filter(m => m.diretoria === dirName).length;
+  
+  elements.confirmTitle.innerText = `Excluir Diretoria "${dirName}"`;
+  elements.confirmBody.innerText = `Tem certeza que deseja excluir a diretoria "${dirName}"? Existem ${linkedMetasCount} meta(s) vinculada(s). A exclusão removerá a diretoria dos cadastros e filtros preservando o histórico das metas.`;
+
+  elements.confirmActionBtn.onclick = async () => {
+    closeModal('confirmModal');
+    
+    if (!state.config.customDirectoratesMap) state.config.customDirectoratesMap = {};
+    state.config.customDirectoratesMap[dirName] = '__DELETED__';
+    await saveConfig({ customDirectoratesMap: state.config.customDirectoratesMap });
+
+    if (state.selectedDiretoria === dirName) {
+      state.selectedDiretoria = "TODAS";
+    }
+
+    renderDirectoratesManagerList();
+    renderAll();
+    showToast(`Diretoria "${dirName}" excluída com sucesso.`, "info");
+  };
+
+  elements.confirmModal.classList.add('active');
+}
+
+/* ==========================================================================
+   FILTERS & CONTROLS EVENTS
+   ========================================================================== */
+function initFilterEvents() {
+  elements.selectMesRef.addEventListener('change', (e) => {
+    state.selectedMes = e.target.value;
+    renderAll();
+  });
+  
+  elements.selectAnoRef.addEventListener('change', (e) => {
+    state.selectedAno = e.target.value;
+    renderAll();
+  });
+  
+  elements.searchInput.addEventListener('input', (e) => {
+    state.searchText = e.target.value.toLowerCase().trim();
+    renderAll();
+  });
+  
+  elements.filterStatusSelect.addEventListener('change', (e) => {
+    state.selectedStatus = e.target.value;
+    renderAll();
+  });
+  
+  elements.btnLimparFiltros.addEventListener('click', () => {
+    state.selectedDiretoria = "TODAS";
+    state.selectedStatus = "TODOS";
+    state.searchText = "";
+    
+    elements.searchInput.value = "";
+    elements.filterStatusSelect.value = "TODOS";
+    
+    renderUnitPills();
+    showToast('Filtros redefinidos (mês mantido).', 'info');
+    renderAll();
+  });
+  
+  elements.btnNovaEvolucao.addEventListener('click', () => {
+    requestSecurityAuthorization(() => openGoalModal());
+  });
+  
+  elements.btnExcluirAnoGeral.addEventListener('click', () => {
+    requestSecurityAuthorization(() => triggerExcluirAnoGeral());
+  });
+}
+
+/* --- Dynamic Unit Pills Renderer --- */
+function getAllDirectorates() {
+  const customMap = state.config.customDirectoratesMap || {};
+  
+  const activeDefaults = DEFAULT_DIRECTORATES.filter(d => customMap[d] !== '__DELETED__');
+  const activeCustomKeys = Object.keys(customMap).filter(d => customMap[d] && customMap[d] !== '__DELETED__');
+  const metaDirs = state.metas.map(m => m.diretoria).filter(d => d && customMap[d] !== '__DELETED__');
+  
+  const combined = Array.from(new Set([...activeDefaults, ...activeCustomKeys, ...metaDirs]));
+  return combined.length > 0 ? combined : ['CODAE'];
+}
+
+function renderUnitPills() {
+  const container = elements.unitPillsContainer;
+  container.innerHTML = '';
+  
+  const allDirs = getAllDirectorates();
+  
+  // All button
+  const allBtn = document.createElement('div');
+  allBtn.className = `unit-pill all ${state.selectedDiretoria === 'TODAS' ? 'active' : ''}`;
+  allBtn.dataset.div = 'TODAS';
+  allBtn.innerText = 'Todas as Divisões';
+  allBtn.addEventListener('click', () => {
+    state.selectedDiretoria = 'TODAS';
+    renderUnitPills();
+    renderAll();
+  });
+  container.appendChild(allBtn);
+  
+  allDirs.forEach(dir => {
+    const pill = document.createElement('div');
+    const color = getDirectorateColor(dir);
+    pill.className = `unit-pill ${state.selectedDiretoria === dir ? 'active' : ''}`;
+    pill.dataset.u = dir;
+    pill.dataset.div = dir;
+    pill.innerText = dir;
+    pill.style.backgroundColor = color;
+    pill.style.borderColor = color;
+    
+    pill.addEventListener('click', () => {
+      state.selectedDiretoria = dir;
+      renderUnitPills();
+      renderAll();
+    });
+    
+    container.appendChild(pill);
+  });
+}
+
+/* ==========================================================================
+   CORE FILTER ENGINE WITH SORT ORDER PRESERVATION
+   ========================================================================== */
+function getFilteredMetas() {
+  const list = state.metas.filter(m => {
+    if (state.selectedMes && m.mes !== state.selectedMes) return false;
+    if (state.selectedAno && m.ano.toString() !== state.selectedAno.toString()) return false;
+    if (state.selectedDiretoria !== "TODAS" && m.diretoria !== state.selectedDiretoria) return false;
+    if (state.selectedStatus !== "TODOS" && m.status !== state.selectedStatus) return false;
+    
+    if (state.searchText) {
+      const targetText = `${m.codigo} ${m.nome_meta} ${m.diretoria} ${m.responsavel} ${m.status}`.toLowerCase();
+      if (!targetText.includes(state.searchText)) return false;
+    }
+    
+    return true;
+  });
+
+  // Preserve explicit sort_order defined by user drag and drop
+  list.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+  return list;
+}
+
+/* ==========================================================================
+   RENDERER PIPELINE
+   ========================================================================== */
+function renderAll() {
+  elements.displayRefMonthBadge.innerText = `${state.selectedMes} / ${state.selectedAno}`;
+  renderUnitPills();
+  
+  if (state.activeTab === 'visao-mensal') {
+    const filteredMetas = getFilteredMetas();
+    renderKPIs(filteredMetas);
+    renderCharts(filteredMetas);
+    renderGoalsList(filteredMetas);
+  } else if (state.activeTab === 'evolucao-historica') {
+    renderEvolucaoHistorica();
+  } else if (state.activeTab === 'historico-anos') {
+    renderHistoricoAnos();
+  }
+}
+
+/* --- 1. KPI Indicators Render --- */
+function renderKPIs(filteredMetas) {
+  const total = filteredMetas.length;
+  const concluidas = filteredMetas.filter(m => m.status === 'Concluída').length;
+  const emAndamento = filteredMetas.filter(m => m.status === 'Em andamento').length;
+  const atrasadas = filteredMetas.filter(m => m.status === 'Atrasada').length;
+  const naoIniciadas = filteredMetas.filter(m => m.status === 'Não iniciada').length;
+  const naoInformadas = filteredMetas.filter(m => m.status === 'Não respondida' || !m.status).length;
+  
+  if (elements.kpiTotal) elements.kpiTotal.innerText = total;
+  if (elements.kpiConcluidas) elements.kpiConcluidas.innerText = concluidas;
+  if (elements.kpiEmAndamento) elements.kpiEmAndamento.innerText = emAndamento;
+  if (elements.kpiAtrasadas) elements.kpiAtrasadas.innerText = atrasadas;
+  if (elements.kpiNaoIniciadas) elements.kpiNaoIniciadas.innerText = naoIniciadas;
+  if (elements.kpiNaoInformadas) elements.kpiNaoInformadas.innerText = naoInformadas;
+}
+
+/* --- 2. Chart.js Visualizations --- */
+function renderCharts(filteredMetas = getFilteredMetas()) {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const textColor = isDark ? '#e5e7eb' : '#111827';
+  const gridColor = isDark ? '#273449' : '#e5e7eb';
+  
+  const counts = {
+    'Atrasada': filteredMetas.filter(m => m.status === 'Atrasada').length,
+    'Não iniciada': filteredMetas.filter(m => m.status === 'Não iniciada').length,
+    'Em andamento': filteredMetas.filter(m => m.status === 'Em andamento').length,
+    'Concluída': filteredMetas.filter(m => m.status === 'Concluída').length,
+    'Não respondida': filteredMetas.filter(m => m.status === 'Não respondida' || !m.status).length
+  };
+  
+  const totalCount = filteredMetas.length || 1;
+  const donutData = [counts['Atrasada'], counts['Não iniciada'], counts['Em andamento'], counts['Concluída'], counts['Não respondida']];
+  
+  // DONUT CHART
+  const ctxDonut = document.getElementById('donutChart').getContext('2d');
+  if (donutChartInst) donutChartInst.destroy();
+  
+  donutChartInst = new Chart(ctxDonut, {
+    type: 'doughnut',
+    data: {
+      labels: ['Atrasadas', 'Não Iniciadas', 'Em Andamento', 'Concluídas', 'Não respondida'],
+      datasets: [{
+        data: donutData,
+        backgroundColor: ['#b21f2d', '#5a5a6a', '#0056b3', '#1e7e34', '#c96a00'],
+        borderWidth: 2,
+        borderColor: isDark ? '#111827' : '#ffffff'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      cutout: '72%'
+    }
+  });
+  
+  // PIE LEGEND DOM RENDER
+  if (elements.pieLegend) {
+    const legendItems = [
+      { label: 'Atrasadas', val: counts['Atrasada'], color: '#b21f2d' },
+      { label: 'Não Iniciadas', val: counts['Não iniciada'], color: '#5a5a6a' },
+      { label: 'Em Andamento', val: counts['Em andamento'], color: '#0056b3' },
+      { label: 'Concluídas', val: counts['Concluída'], color: '#1e7e34' },
+      { label: 'Não respondida', val: counts['Não respondida'], color: '#c96a00' }
+    ];
+    elements.pieLegend.innerHTML = legendItems.map(item => {
+      const pct = ((item.val / totalCount) * 100).toFixed(1);
+      return `<div class="pie-leg-row">
+        <span class="pie-leg-dot" style="background:${item.color}"></span>
+        <span class="pie-leg-label">${item.label}</span>
+        <span class="pie-leg-val">${item.val} (${pct}%)</span>
+      </div>`;
+    }).join('');
+  }
+  
+  // STACKED BAR CHART
+  const directorates = getAllDirectorates();
+  const statusKeys = [
+    { label: 'Atrasadas', statusStr: 'Atrasada', color: '#b21f2d' },
+    { label: 'Não Iniciadas', statusStr: 'Não iniciada', color: '#5a5a6a' },
+    { label: 'Em Andamento', statusStr: 'Em andamento', color: '#0056b3' },
+    { label: 'Concluídas', statusStr: 'Concluída', color: '#1e7e34' },
+    { label: 'Não respondida', statusStr: 'Não respondida', color: '#c96a00' }
+  ];
+  
+  const datasetsStacked = statusKeys.map(sk => {
+    const dataArr = directorates.map(dir => {
+      return filteredMetas.filter(m => m.diretoria === dir && (m.status === sk.statusStr || (sk.statusStr === 'Não respondida' && !m.status))).length;
+    });
+    return {
+      label: sk.label,
+      data: dataArr,
+      backgroundColor: sk.color
+    };
+  });
+  
+  const ctxStacked = document.getElementById('stackedBarChart').getContext('2d');
+  if (stackedBarChartInst) stackedBarChartInst.destroy();
+  
+  stackedBarChartInst = new Chart(ctxStacked, {
+    type: 'bar',
+    data: { labels: directorates, datasets: datasetsStacked },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: { stacked: true, ticks: { color: textColor, font: { size: 11, weight: '600' } }, grid: { color: gridColor } },
+        y: { stacked: true, ticks: { color: textColor, stepSize: 1 }, grid: { color: gridColor } }
+      },
+      plugins: { legend: { position: 'top', labels: { color: textColor, font: { size: 10, weight: '600' } } } }
+    }
+  });
+}
+
+/* --- 3. Goals List Render (Grouped, Ordered & Drag-and-Drop) --- */
+function renderGoalsList(filteredMetas) {
+  const container = elements.goalsListContainer;
+  container.innerHTML = '';
+  
+  if (filteredMetas.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <i class="fa-solid fa-folder-open"></i>
+        <h3>Nenhuma meta encontrada</h3>
+        <p>Não há registros cadastrados que correspondam aos filtros para ${state.selectedMes} de ${state.selectedAno}.</p>
+      </div>
+    `;
+    return;
+  }
+  
+  const groupsOrder = [
+    { key: "Atrasada", title: "Metas Atrasadas", slug: "at", icon: "fa-triangle-exclamation" },
+    { key: "Não iniciada", title: "Metas Não Iniciadas", slug: "ni", icon: "fa-hourglass-start" },
+    { key: "Em andamento", title: "Metas Em Andamento", slug: "ea", icon: "fa-spinner" },
+    { key: "Concluída", title: "Metas Concluídas", slug: "ok", icon: "fa-circle-check" },
+    { key: "Não respondida", title: "Metas Não Respondidas", slug: "nao-informado", icon: "fa-circle-question" }
+  ];
+  
+  groupsOrder.forEach(group => {
+    const groupMetas = filteredMetas.filter(m => m.status === group.key || (group.key === 'Não respondida' && !m.status));
+    
+    if (groupMetas.length > 0) {
+      const headerEl = document.createElement('div');
+      headerEl.className = 'section-title';
+      headerEl.innerHTML = `
+        <i class="fa-solid ${group.icon}"></i>
+        <span>${group.title}</span>
+        <span class="section-count ${group.slug}">${groupMetas.length}</span>
+      `;
+      container.appendChild(headerEl);
+      
+      groupMetas.forEach(meta => {
+        const cardEl = createGoalCardElement(meta);
+        container.appendChild(cardEl);
+      });
+    }
+  });
+}
+
+function createGoalCardElement(meta) {
+  const card = document.createElement('article');
+  card.className = 'meta-card';
+  card.dataset.status = meta.status || 'Não respondida';
+  card.dataset.id = meta.id;
+  card.setAttribute('draggable', 'true');
+  
+  const statusSlug = getStatusCssClass(meta.status);
+  const dotColor = getStatusDotColor(meta.status);
+  const unitColor = getDirectorateColor(meta.diretoria);
+  const diag = meta.diagnostico || {};
+  
+  // Rule for Repactuada Tag & Card Display:
+  // Show tag badge whenever tag checkbox is checked!
+  const isRepactChecked = !!(meta.is_repactuada || (diag && diag.is_repactuada));
+  
+  const repactuadaTagHtml = isRepactChecked
+    ? `<span class="badge-repactuada" style="background:#ff1493; color:#ffffff; border:1px solid #ff1493; padding:2px 8px; border-radius:12px; font-weight:800; font-size:10px; flex-shrink:0;"><i class="fa-solid fa-handshake-simple"></i> Repactuada</span>`
+    : '';
+  
+  const bulletsHtml = renderCardBulletsHTML(meta.status, diag, meta.historico_repactuacao, isRepactChecked);
+  
+  card.innerHTML = `
+    <div class="meta-header">
+      <i class="fa-solid fa-grip-vertical drag-handle" title="Arrastar para reordenar a meta"></i>
+      <span class="status-dot" style="background:${dotColor}"></span>
+      <span class="status-badge ${statusSlug}">${meta.status || 'Não respondida'}</span>
+      <span class="unit-tag" style="background:${unitColor};" data-u="${meta.diretoria}">${meta.diretoria}</span>
+      ${repactuadaTagHtml}
+      <div class="meta-header-meta">
+        <div class="meta-name-text"><strong>${meta.codigo}</strong> - ${meta.nome_meta}</div>
+        <div class="meta-header-line">
+          <span><i class="fa-solid fa-user"></i> ${meta.responsavel}</span>
+          <span><i class="fa-solid fa-calendar"></i> ${meta.mes} / ${meta.ano}</span>
+        </div>
+      </div>
+      <i class="fa-solid fa-chevron-down meta-chevron"></i>
+    </div>
+
+    <div class="meta-body">
+      ${bulletsHtml}
+      
+      <div class="meta-actions">
+        <button class="btn btn-outline btn-sm" data-action="duplicate" data-id="${meta.id}" title="Copiar informações para atualizar em outro mês">
+          <i class="fa-solid fa-copy"></i> Atualizar
+        </button>
+        <button class="btn btn-outline btn-sm" data-action="edit" data-id="${meta.id}">
+          <i class="fa-solid fa-pen-to-square"></i> Editar
+        </button>
+        <button class="btn btn-danger btn-sm" data-action="delete" data-id="${meta.id}">
+          <i class="fa-solid fa-trash"></i> Remover
+        </button>
+      </div>
+    </div>
+  `;
+
+  // Drag and Drop Event Listeners for explicit sorting
+  card.addEventListener('dragstart', (e) => {
+    state.draggedMetaId = meta.id;
+    card.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+  });
+
+  card.addEventListener('dragend', () => {
+    card.classList.remove('dragging');
+    document.querySelectorAll('.meta-card').forEach(c => c.classList.remove('drag-over'));
+  });
+
+  card.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    if (state.draggedMetaId && state.draggedMetaId !== meta.id) {
+      card.classList.add('drag-over');
+    }
+  });
+
+  card.addEventListener('dragleave', () => {
+    card.classList.remove('drag-over');
+  });
+
+  card.addEventListener('drop', async (e) => {
+    e.preventDefault();
+    card.classList.remove('drag-over');
+    
+    if (!state.draggedMetaId || state.draggedMetaId === meta.id) return;
+    
+    const container = elements.goalsListContainer;
+    const cards = Array.from(container.querySelectorAll('.meta-card'));
+    const draggedIdx = cards.findIndex(c => c.dataset.id === state.draggedMetaId);
+    const targetIdx = cards.findIndex(c => c.dataset.id === meta.id);
+    
+    if (draggedIdx >= 0 && targetIdx >= 0) {
+      // Reorder cards in current DOM
+      const draggedCard = cards[draggedIdx];
+      if (draggedIdx < targetIdx) {
+        card.after(draggedCard);
+      } else {
+        card.before(draggedCard);
+      }
+
+      // Recalculate sort_order for visible cards and persist ONLY sort_order to Supabase
+      const updatedCards = Array.from(container.querySelectorAll('.meta-card'));
+      for (let i = 0; i < updatedCards.length; i++) {
+        const cId = updatedCards[i].dataset.id;
+        const targetMeta = state.metas.find(m => m.id === cId);
+        if (targetMeta) {
+          const newOrder = i + 1;
+          targetMeta.sort_order = newOrder;
+          if (supabase && isValidUUID(cId)) {
+            await supabase.from('metas_codae').update({ sort_order: newOrder, atualizado_em: new Date().toISOString() }).eq('id', cId);
+          }
+        }
+      }
+
+      showToast("Nova ordem das metas salva!", "success");
+    }
+  });
+  
+  const headerEl = card.querySelector('.meta-header');
+  const bodyEl = card.querySelector('.meta-body');
+  const chevronEl = card.querySelector('.meta-chevron');
+  
+  headerEl.addEventListener('click', (e) => {
+    if (e.target.classList.contains('drag-handle')) return;
+    bodyEl.classList.toggle('open');
+    chevronEl.classList.toggle('open');
+  });
+  
+  card.querySelector('[data-action="duplicate"]').addEventListener('click', (e) => {
+    e.stopPropagation();
+    requestSecurityAuthorization(() => openGoalModalForDuplication(meta.id));
+  });
+  
+  card.querySelector('[data-action="edit"]').addEventListener('click', (e) => {
+    e.stopPropagation();
+    requestSecurityAuthorization(() => openGoalModal(meta.id));
+  });
+  
+  card.querySelector('[data-action="delete"]').addEventListener('click', (e) => {
+    e.stopPropagation();
+    requestSecurityAuthorization(() => triggerDeleteGoal(meta.id));
+  });
+  
+  return card;
+}
+
+function getStatusCssClass(status) {
+  switch (status) {
+    case 'Atrasada': return 'badge-at';
+    case 'Não iniciada': return 'badge-ni';
+    case 'Em andamento': return 'badge-ea';
+    case 'Concluída': return 'badge-ok';
+    case 'Repactuada': return 'badge-repactuada';
+    default: return 'badge-nao-informado';
+  }
+}
+
+function getStatusDotColor(status) {
+  switch (status) {
+    case 'Atrasada': return '#b21f2d';
+    case 'Não iniciada': return '#5a5a6a';
+    case 'Em andamento': return '#0056b3';
+    case 'Concluída': return '#1e7e34';
+    default: return '#c96a00';
+  }
+}
+
+function renderCardBulletsHTML(status, diag, historicoRepactuacao, shouldShowRepactTag) {
+  if (!diag) diag = {};
+  let html = '';
+  
+  if (status === 'Em andamento') {
+    html += `<div class="status-section-em-andamento">`;
+    html += `<div class="meta-info-grid">`;
+    if (diag.fase) html += renderInfoBox("Fase", diag.fase);
+    if (diag.andamento_anterior) html += renderInfoBoxWithTag("Andamento vs anterior", diag.andamento_anterior, getSpecificBulletColorClass('andamento_anterior', diag.andamento_anterior));
+    if (diag.acoes_executadas) html += renderInfoBoxWithTag("Ações executadas no mês", diag.acoes_executadas, getSpecificBulletColorClass('acoes_executadas', diag.acoes_executadas));
+    if (diag.cronograma) html += renderInfoBoxWithTag("Cronograma", diag.cronograma, getSpecificBulletColorClass('cronograma', diag.cronograma));
+    if (diag.resultados_esperados) html += renderInfoBoxWithTag("Resultados esperados", diag.resultados_esperados, getSpecificBulletColorClass('resultados_esperados', diag.resultados_esperados));
+    if (diag.proximas_etapas) html += renderInfoBoxWithTag("Próximas etapas definidas", diag.proximas_etapas, getSpecificBulletColorClass('proximas_etapas', diag.proximas_etapas));
+    if (diag.risco_prazo) html += renderInfoBoxWithTag("Risco de não cumprimento no prazo", diag.risco_prazo, getSpecificBulletColorClass('risco_prazo', diag.risco_prazo));
+    html += `</div>`;
+    
+    if (diag.desc_proximas_etapas && (diag.proximas_etapas === 'Sim' || diag.proximas_etapas === 'Parcialmente')) {
+      html += `<div class="resumo-box"><strong>Descrição das etapas definidas:</strong>\n${diag.desc_proximas_etapas}</div>`;
+    }
+    
+    if (diag.perguntas_especificas && diag.perguntas_especificas.length > 0) {
+      html += `<div style="margin-top: 10px; border-top: 1px solid #f3f4f6; padding-top: 10px;">`;
+      html += `<div class="info-label" style="margin-bottom: 8px;"><i class="fa-solid fa-clipboard-question"></i> Perguntas Específicas</div>`;
+      html += `<div class="meta-info-grid">`;
+      diag.perguntas_especificas.forEach(q => {
+        html += `<div class="info-box">
+          <span class="info-label">Pergunta: ${q.pergunta}</span>
+          <div class="info-value"><strong>Resposta:</strong> ${q.resposta}</div>
+        </div>`;
+      });
+      html += `</div></div>`;
+    }
+    html += `</div>`;
+    
+  } else if (status === 'Atrasada') {
+    html += `<div class="status-section-atrasada">`;
+    if (diag.motivo_atraso) {
+      html += `<div class="motivo-box"><strong>Motivo do atraso da meta:</strong>\n${diag.motivo_atraso}</div>`;
+    }
+    
+    html += `<div class="meta-info-grid">`;
+    if (diag.etapa_atraso) html += renderInfoBox("Etapa do atraso", diag.etapa_atraso);
+    if (diag.cenario_anterior) html += renderInfoBoxWithTag("Cenário vs anterior", diag.cenario_anterior, getSpecificBulletColorClass('cenario_anterior', diag.cenario_anterior));
+    if (diag.impacto_resultados) html += renderInfoBoxWithTag("Impactando resultados", diag.impacto_resultados, getSpecificBulletColorClass('impacto_resultados', diag.impacto_resultados));
+    if (diag.responsabilidade_exclusiva) html += renderInfoBoxWithTag("Exclusivo da área", diag.responsabilidade_exclusiva, getSpecificBulletColorClass('responsabilidade_exclusiva', diag.responsabilidade_exclusiva));
+    if (diag.outras_divisoes_atraso && diag.outras_divisoes_atraso.length > 0) {
+      html += renderInfoBox("Outras divisões responsáveis", diag.outras_divisoes_atraso.join(", "));
+    }
+    if (diag.acoes_corretivas) html += renderInfoBoxWithTag("Ações corretivas", diag.acoes_corretivas, getSpecificBulletColorClass('acoes_corretivas', diag.acoes_corretivas));
+    if (diag.novo_prazo) html += renderInfoBoxWithTag("Novo prazo definido", diag.novo_prazo, diag.novo_prazo === 'Sim' ? 'green' : 'red');
+    if (diag.risco_cumprimento) html += renderInfoBoxWithTag("Risco de não cumprimento", diag.risco_cumprimento, getSpecificBulletColorClass('risco_cumprimento', diag.risco_cumprimento));
+    if (diag.prioridade) html += renderInfoBoxWithTag("Nível de prioridade", diag.prioridade, getSpecificBulletColorClass('prioridade', diag.prioridade));
+    if (diag.apoio_institucional) html += renderInfoBox("Apoio institucional", diag.apoio_institucional);
+    html += `</div>`;
+    
+    if (diag.desc_acoes_corretivas) html += `<div class="motivo-box"><strong>Descrição das ações definidas:</strong>\n${diag.desc_acoes_corretivas}</div>`;
+    if (diag.novo_prazo_data && diag.novo_prazo === 'Sim') html += `<div class="motivo-box"><strong>Novo prazo definido para:</strong> ${diag.novo_prazo_data}</div>`;
+    if (diag.indicacao_apoios && diag.apoio_institucional === 'Sim') html += `<div class="motivo-box"><strong>Indicação dos apoios necessários:</strong>\n${diag.indicacao_apoios}</div>`;
+    html += `</div>`;
+    
+  } else if (status === 'Não iniciada') {
+    html += `<div class="status-section-nao-iniciada">`;
+    html += `<div class="meta-info-grid">`;
+    if (diag.plano_acao) html += renderInfoBoxWithTag("Plano de ação", diag.plano_acao, getSpecificBulletColorClass('plano_acao', diag.plano_acao));
+    if (diag.prioridade) html += renderInfoBoxWithTag("Nível de prioridade", diag.prioridade, getSpecificBulletColorClass('prioridade_nao_iniciada', diag.prioridade));
+    if (diag.dependencias && diag.dependencias.length > 0) html += renderInfoBox("Dependências", diag.dependencias.join(", "));
+    if (diag.previsao_inicio) html += renderInfoBoxWithTag("Previsão para iniciar", diag.previsao_inicio, getSpecificBulletColorClass('previsao_inicio', diag.previsao_inicio));
+    if (diag.acoes_viabilizacao) html += renderInfoBoxWithTag("Ações para viabilizar", diag.acoes_viabilizacao, getSpecificBulletColorClass('acoes_viabilizacao', diag.acoes_viabilizacao));
+    html += `</div>`;
+    
+    if (diag.desc_plano_acao) html += `<div class="resumo-box"><strong>Descrição do plano de ação:</strong>\n${diag.desc_plano_acao}</div>`;
+    if (diag.obs_dependencias) html += `<div class="resumo-box"><strong>Observações sobre dependências:</strong>\n${diag.obs_dependencias}</div>`;
+    if (diag.desc_acoes_viabilizacao) html += `<div class="resumo-box"><strong>Descreva as ações:</strong>\n${diag.desc_acoes_viabilizacao}</div>`;
+    html += `</div>`;
+    
+  } else if (status === 'Concluída') {
+    if (diag.obs_trajetoria) {
+      html += `<div class="status-section-concluida"><div class="resumo-box" style="background:#f0fdf4; border-color:#bbf7d0; color:#14532d;"><strong>Observações sobre a trajetória da meta:</strong>\n${diag.obs_trajetoria}</div></div>`;
+    }
+  } else if (status === 'Não respondida') {
+    if (diag.justificativa_nao_preenchido) {
+      html += `<div class="motivo-box"><strong>Justificativas para que o monitoramento não foi preenchido:</strong>\n${diag.justificativa_nao_preenchido}</div>`;
+    }
+  }
+
+  // Render Repactuação History Box ONLY if tag is checked AND notes text is NOT empty
+  const textRepact = (historicoRepactuacao || (diag ? diag.historico_repactuacao : '') || '').trim();
+  if (shouldShowRepactTag && textRepact !== '') {
+    html += `<div class="status-section-repactuada"><div class="motivo-box" style="background:#fff0f7; border-color:#ffb3e0; color:#800048;"><strong>Histórico de repactuação:</strong>\n${textRepact}</div></div>`;
+  }
+  
+  return html;
+}
+
+function renderInfoBox(label, val) {
+  return `
+    <div class="info-box">
+      <span class="info-label">${label}</span>
+      <div class="info-value">${val}</div>
+    </div>
+  `;
+}
+
+function renderInfoBoxWithTag(label, val, colorClass) {
+  return `
+    <div class="info-box">
+      <span class="info-label">${label}</span>
+      <div class="info-value"><span class="bullet-tag ${colorClass}">${val}</span></div>
+    </div>
+  `;
+}
+
+/* ==========================================================================
+   DYNAMIC GOAL EVOLUTION MODAL & QUESTIONNAIRE BUILDER
+   ========================================================================== */
+function initModalEvents() {
+  document.querySelectorAll('[data-close-modal]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const modalId = btn.dataset.closeModal;
+      closeModal(modalId);
+    });
+  });
+  
+  elements.formStatus.addEventListener('change', (e) => {
+    updateFormDiagnosticFieldsVisibility(e.target.value);
+  });
+  
+  elements.formDiretoria.addEventListener('change', (e) => {
+    elements.boxCustomDiretoria.style.display = e.target.value === '__NEW_DIRECTORATE__' ? 'block' : 'none';
+  });
+  
+  elements.formDiretoriaColor.addEventListener('input', (e) => {
+    elements.formDiretoriaHex.value = e.target.value;
+  });
+  elements.formDiretoriaHex.addEventListener('input', (e) => {
+    if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
+      elements.formDiretoriaColor.value = e.target.value;
+    }
+  });
+  
+  elements.btnAddCustomQuestion.addEventListener('click', () => {
+    addCustomQuestionBlock();
+  });
+  
+  elements.goalForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    await saveGoalForm();
+  });
+}
+
+function updateFormDirectoratesDropdown(selectedVal = 'CODAE') {
+  const select = elements.formDiretoria;
+  select.innerHTML = '';
+  
+  const allDirs = getAllDirectorates();
+  allDirs.forEach(dir => {
+    const opt = document.createElement('option');
+    opt.value = dir;
+    opt.innerText = dir;
+    if (dir === selectedVal) opt.selected = true;
+    select.appendChild(opt);
+  });
+  
+  const customOpt = document.createElement('option');
+  customOpt.value = '__NEW_DIRECTORATE__';
+  customOpt.innerText = '+ Adicionar Nova Diretoria / Divisão...';
+  select.appendChild(customOpt);
+  
+  elements.boxCustomDiretoria.style.display = 'none';
+}
+
+function openGoalModal(goalId = null) {
+  state.editingGoalId = goalId;
+  state.customQuestionsTemp = [];
+  elements.customQuestionsContainer.innerHTML = '';
+  elements.goalForm.reset();
+  
+  if (goalId) {
+    const meta = state.metas.find(m => m.id === goalId);
+    if (meta) {
+      elements.modalGoalTitle.innerText = "Editar Evolução de Meta";
+      elements.formGoalId.value = meta.id;
+      elements.formCodigo.value = meta.codigo || '';
+      elements.formNomeMeta.value = meta.nome_meta || '';
+      
+      updateFormDirectoratesDropdown(meta.diretoria);
+      
+      elements.formResponsavel.value = meta.responsavel || '';
+      elements.formMes.value = meta.mes || state.selectedMes;
+      elements.formAno.value = meta.ano || state.selectedAno;
+      elements.formStatus.value = meta.status || 'Não respondida';
+      
+      updateFormDiagnosticFieldsVisibility(meta.status);
+      populateFormDiagnostics(meta.diagnostico || {}, meta.historico_repactuacao, meta.is_repactuada);
+    }
+  } else {
+    elements.modalGoalTitle.innerText = "Cadastrar Evolução de Meta";
+    elements.formGoalId.value = '';
+    updateFormDirectoratesDropdown('CODAE');
+    elements.formMes.value = state.selectedMes || 'Fevereiro';
+    elements.formAno.value = state.selectedAno || '2026';
+    elements.formStatus.value = 'Não respondida';
+    updateFormDiagnosticFieldsVisibility('Não respondida');
+    populateFormDiagnostics({}, '', false);
+  }
+  
+  elements.goalModal.classList.add('active');
+}
+
+/* --- "Atualizar" (Duplicate Goal for Next Month) Feature --- */
+function openGoalModalForDuplication(goalId) {
+  const meta = state.metas.find(m => m.id === goalId);
+  if (!meta) return;
+  
+  state.editingGoalId = null;
+  state.customQuestionsTemp = [];
+  elements.customQuestionsContainer.innerHTML = '';
+  elements.goalForm.reset();
+  
+  elements.modalGoalTitle.innerText = "Atualizar Evolução para Novo Mês";
+  elements.formGoalId.value = '';
+  elements.formCodigo.value = meta.codigo || '';
+  elements.formNomeMeta.value = meta.nome_meta || '';
+  
+  updateFormDirectoratesDropdown(meta.diretoria);
+  elements.formResponsavel.value = meta.responsavel || '';
+  
+  const curMonthIdx = MONTH_ORDER.indexOf(meta.mes);
+  let nextMonthStr = meta.mes;
+  let targetYear = meta.ano;
+  if (curMonthIdx >= 0 && curMonthIdx < 11) {
+    nextMonthStr = MONTH_ORDER[curMonthIdx + 1];
+  } else if (curMonthIdx === 11) {
+    nextMonthStr = MONTH_ORDER[0];
+    targetYear = (parseInt(meta.ano) + 1).toString();
+  }
+  
+  elements.formMes.value = nextMonthStr;
+  elements.formAno.value = targetYear;
+  elements.formStatus.value = 'Em andamento';
+  updateFormDiagnosticFieldsVisibility('Em andamento');
+  populateFormDiagnostics(meta.diagnostico || {}, meta.historico_repactuacao, meta.is_repactuada);
+  
+  elements.goalModal.classList.add('active');
+  showToast(`Preenchendo atualização para ${nextMonthStr}/${targetYear}`, 'info');
+}
+
+function closeModal(modalId) {
+  const modal = document.getElementById(modalId);
+  if (modal) modal.classList.remove('active');
+}
+
+function updateFormDiagnosticFieldsVisibility(status) {
+  elements.diagEmAndamentoBox.style.display = status === 'Em andamento' ? 'block' : 'none';
+  elements.diagAtrasadaBox.style.display = status === 'Atrasada' ? 'block' : 'none';
+  elements.diagNaoIniciadaBox.style.display = status === 'Não iniciada' ? 'block' : 'none';
+  elements.diagConcluidaBox.style.display = status === 'Concluída' ? 'block' : 'none';
+  elements.diagNaoRespondidaBox.style.display = status === 'Não respondida' ? 'block' : 'none';
+}
+
+function initDiagnosticFormListeners() {
+  const cbRepact = document.getElementById('formIsRepactuada');
+  if (cbRepact) {
+    cbRepact.addEventListener('change', (e) => {
+      const box = document.getElementById('boxHistoricoRepactuacao');
+      if (box) box.style.display = e.target.checked ? 'block' : 'none';
+    });
+  }
+
+  document.getElementById('diagProximasEtapas').addEventListener('change', (e) => {
+    const val = e.target.value;
+    document.getElementById('boxDescProximasEtapas').style.display = (val === 'Sim' || val === 'Parcialmente') ? 'block' : 'none';
+  });
+  
+  document.getElementById('diagResponsabilidadeExclusiva').addEventListener('change', (e) => {
+    document.getElementById('boxOutrasDivisoes').style.display = e.target.value === 'Não' ? 'block' : 'none';
+  });
+  
+  document.getElementById('diagNovoPrazo').addEventListener('change', (e) => {
+    document.getElementById('boxNovoPrazoData').style.display = e.target.value === 'Sim' ? 'block' : 'none';
+  });
+  
+  document.getElementById('diagApoioInstitucional').addEventListener('change', (e) => {
+    document.getElementById('boxIndicacaoApoios').style.display = e.target.value === 'Sim' ? 'block' : 'none';
+  });
+}
+
+function populateFormDiagnostics(diag, historicoRepactuacao, isRepactuada) {
+  const isRepact = isRepactuada !== undefined ? !!isRepactuada : !!(historicoRepactuacao || (diag && diag.is_repactuada));
+  const cbRepact = document.getElementById('formIsRepactuada');
+  if (cbRepact) {
+    cbRepact.checked = isRepact;
+    const box = document.getElementById('boxHistoricoRepactuacao');
+    if (box) box.style.display = isRepact ? 'block' : 'none';
+  }
+  const txtRepact = document.getElementById('diagHistoricoRepactuacao');
+  if (txtRepact) txtRepact.value = historicoRepactuacao || (diag ? diag.historico_repactuacao : '') || '';
+
+  document.getElementById('diagFase').value = diag.fase || '';
+  document.getElementById('diagAndamentoAnterior').value = diag.andamento_anterior || '';
+  document.getElementById('diagAcoesExecutadas').value = diag.acoes_executadas || '';
+  document.getElementById('diagCronograma').value = diag.cronograma || '';
+  document.getElementById('diagResultadosEsperados').value = diag.resultados_esperados || '';
+  document.getElementById('diagProximasEtapas').value = diag.proximas_etapas || '';
+  document.getElementById('diagDescProximasEtapas').value = diag.desc_proximas_etapas || '';
+  document.getElementById('diagRiscoPrazo').value = diag.risco_prazo || '';
+  
+  if (diag.proximas_etapas === 'Sim' || diag.proximas_etapas === 'Parcialmente') {
+    document.getElementById('boxDescProximasEtapas').style.display = 'block';
+  }
+  
+  if (diag.perguntas_especificas) {
+    diag.perguntas_especificas.forEach(q => addCustomQuestionBlock(q.pergunta, q.tipo, q.resposta));
+  }
+  
+  document.getElementById('diagMotivoAtraso').value = diag.motivo_atraso || '';
+  document.getElementById('diagEtapaAtraso').value = diag.etapa_atraso || '';
+  document.getElementById('diagCenarioAnterior').value = diag.cenario_anterior || '';
+  document.getElementById('diagImpactoResultados').value = diag.impacto_resultados || '';
+  document.getElementById('diagResponsabilidadeExclusiva').value = diag.responsabilidade_exclusiva || '';
+  if (diag.responsabilidade_exclusiva === 'Não') {
+    document.getElementById('boxOutrasDivisoes').style.display = 'block';
+    const checkboxes = document.querySelectorAll('input[name="divRespAtraso"]');
+    checkboxes.forEach(cb => {
+      cb.checked = diag.outras_divisoes_atraso && diag.outras_divisoes_atraso.includes(cb.value);
+    });
+  }
+  document.getElementById('diagAcoesCorretivas').value = diag.acoes_corretivas || '';
+  document.getElementById('diagDescAcoesDefinidas').value = diag.desc_acoes_corretivas || '';
+  document.getElementById('diagNovoPrazo').value = diag.novo_prazo || '';
+  document.getElementById('diagNovoPrazoData').value = diag.novo_prazo_data || '';
+  if (diag.novo_prazo === 'Sim') document.getElementById('boxNovoPrazoData').style.display = 'block';
+  document.getElementById('diagRiscoCumprimento').value = diag.risco_cumprimento || '';
+  document.getElementById('diagPrioridadeAtraso').value = diag.prioridade || '';
+  document.getElementById('diagApoioInstitucional').value = diag.apoio_institucional || '';
+  document.getElementById('diagIndicacaoApoios').value = diag.indicacao_apoios || '';
+  if (diag.apoio_institucional === 'Sim') document.getElementById('boxIndicacaoApoios').style.display = 'block';
+  
+  document.getElementById('diagPlanoAcao').value = diag.plano_acao || '';
+  document.getElementById('diagDescPlanoAcao').value = diag.desc_plano_acao || '';
+  document.getElementById('diagPrioridadeNaoIniciada').value = diag.prioridade || '';
+  if (diag.dependencias) {
+    const checkboxes = document.querySelectorAll('input[name="depNaoIniciada"]');
+    checkboxes.forEach(cb => {
+      cb.checked = diag.dependencias.includes(cb.value);
+    });
+  }
+  document.getElementById('diagObsDependencias').value = diag.obs_dependencias || '';
+  document.getElementById('diagPrevisaoInicio').value = diag.previsao_inicio || '';
+  document.getElementById('diagAcoesViabilizacao').value = diag.acoes_viabilizacao || '';
+  document.getElementById('diagDescAcoesViabilizacao').value = diag.desc_acoes_viabilizacao || '';
+  
+  document.getElementById('diagObsTrajetoria').value = diag.obs_trajetoria || '';
+  elements.diagHistoricoRepactuacao.value = historicoRepactuacao || (diag ? diag.historico_repactuacao : '') || '';
+  document.getElementById('diagJustificativaNaoPreenchido').value = diag.justificativa_nao_preenchido || '';
+}
+
+/* --- Unlimited Dynamic Custom Question Generator --- */
+function addCustomQuestionBlock(pergunta = '', tipo = 'Campo aberto', resposta = '') {
+  const qId = 'q_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
+  
+  const card = document.createElement('div');
+  card.style.cssText = "background:#f9fafb; border:1px solid #d1d5db; border-radius:6px; padding:10px; position:relative;";
+  card.dataset.qid = qId;
+  
+  card.innerHTML = `
+    <button type="button" class="remove-question-btn" style="position:absolute; top:6px; right:8px; background:none; border:none; color:#b21f2d; cursor:pointer;" title="Excluir Pergunta"><i class="fa-solid fa-xmark"></i></button>
+    <div class="form-row" style="margin-bottom:8px;">
+      <div style="grid-column: span 2;">
+        <label class="form-label">Enunciado da Pergunta</label>
+        <input type="text" class="form-control q-prompt" value="${pergunta}" placeholder="Digite a pergunta personalizada..." required />
+      </div>
+      <div>
+        <label class="form-label">Tipo de Resposta</label>
+        <select class="form-control form-select q-type">
+          <option value="Numérica" ${tipo === 'Numérica' ? 'selected' : ''}>Numérica</option>
+          <option value="Percentual" ${tipo === 'Percentual' ? 'selected' : ''}>Percentual</option>
+          <option value="Status" ${tipo === 'Status' ? 'selected' : ''}>Status (Sim/Não/Parcialmente)</option>
+          <option value="Progresso" ${tipo === 'Progresso' ? 'selected' : ''}>Progresso (Avançou/Regrediu/Manteve)</option>
+          <option value="Campo aberto" ${tipo === 'Campo aberto' ? 'selected' : ''}>Campo aberto (Texto livre)</option>
+        </select>
+      </div>
+      <div class="q-answer-box" style="grid-column: span 2;"></div>
+    </div>
+  `;
+  
+  const typeSelect = card.querySelector('.q-type');
+  const answerBox = card.querySelector('.q-answer-box');
+  
+  const updateAnswerField = (selectedType, currentVal = '') => {
+    let fieldHtml = '';
+    if (selectedType === 'Numérica') {
+      fieldHtml = `<label class="form-label">Resposta Numérica</label><input type="number" class="form-control q-ans" value="${currentVal}" placeholder="0" />`;
+    } else if (selectedType === 'Percentual') {
+      fieldHtml = `<label class="form-label">Resposta em Porcentagem</label><input type="text" class="form-control q-ans" value="${currentVal}" placeholder="Ex: 85%" />`;
+    } else if (selectedType === 'Status') {
+      fieldHtml = `<label class="form-label">Resposta Status</label><select class="form-control form-select q-ans">
+        <option value="Sim" ${currentVal === 'Sim' ? 'selected' : ''}>Sim</option>
+        <option value="Parcialmente" ${currentVal === 'Parcialmente' ? 'selected' : ''}>Parcialmente</option>
+        <option value="Não" ${currentVal === 'Não' ? 'selected' : ''}>Não</option>
+      </select>`;
+    } else if (selectedType === 'Progresso') {
+      fieldHtml = `<label class="form-label">Resposta Progresso</label><select class="form-control form-select q-ans">
+        <option value="Avançou" ${currentVal === 'Avançou' ? 'selected' : ''}>Avançou</option>
+        <option value="Manteve" ${currentVal === 'Manteve' ? 'selected' : ''}>Manteve</option>
+        <option value="Regrediu" ${currentVal === 'Regrediu' ? 'selected' : ''}>Regrediu</option>
+      </select>`;
+    } else {
+      fieldHtml = `<label class="form-label">Resposta por Texto Livre</label><input type="text" class="form-control q-ans" value="${currentVal}" placeholder="Digite a resposta..." />`;
+    }
+    answerBox.innerHTML = fieldHtml;
+  };
+  
+  updateAnswerField(tipo, resposta);
+  typeSelect.addEventListener('change', (e) => updateAnswerField(e.target.value));
+  card.querySelector('.remove-question-btn').addEventListener('click', () => {
+    requestSecurityAuthorization(() => card.remove());
+  });
+  
+  elements.customQuestionsContainer.appendChild(card);
+}
+
+async function saveGoalForm() {
+  const metaId = elements.formGoalId.value || null;
+  const status = elements.formStatus.value;
+  
+  let selectedDiretoria = elements.formDiretoria.value;
+  if (selectedDiretoria === '__NEW_DIRECTORATE__') {
+    selectedDiretoria = elements.formDiretoriaCustom.value.trim();
+    const customColor = elements.formDiretoriaHex.value.trim() || elements.formDiretoriaColor.value;
+    
+    if (selectedDiretoria) {
+      if (!state.config.customDirectoratesMap) state.config.customDirectoratesMap = {};
+      state.config.customDirectoratesMap[selectedDiretoria] = customColor;
+      await saveConfig({ customDirectoratesMap: state.config.customDirectoratesMap });
+    } else {
+      selectedDiretoria = 'CODAE';
+    }
+  }
+  
+  const existingMeta = metaId ? state.metas.find(m => m.id === metaId) : null;
+
+  const isRepact = document.getElementById('formIsRepactuada') ? document.getElementById('formIsRepactuada').checked : false;
+  const histRepactVal = isRepact ? (document.getElementById('diagHistoricoRepactuacao') ? document.getElementById('diagHistoricoRepactuacao').value : '') : '';
+
+  const metaObj = {
+    id: metaId,
+    codigo: elements.formCodigo.value.trim().toUpperCase(),
+    nome_meta: elements.formNomeMeta.value.trim(),
+    diretoria: selectedDiretoria,
+    responsavel: elements.formResponsavel.value.trim(),
+    mes: elements.formMes.value,
+    ano: Number(elements.formAno.value) || 2026,
+    status: status,
+    is_repactuada: isRepact,
+    ativo: true,
+    diagnostico: { is_repactuada: isRepact, historico_repactuacao: histRepactVal },
+    sort_order: existingMeta ? (existingMeta.sort_order || 0) : (state.metas.length + 1),
+    historico_repactuacao: histRepactVal,
+    atualizado_em: new Date().toISOString()
+  };
+  
+  if (!state.editingGoalId) {
+    metaObj.criado_em = new Date().toISOString();
+  } else {
+    if (existingMeta) metaObj.criado_em = existingMeta.criado_em;
+  }
+  
+  if (status === 'Em andamento') {
+    const customQuestions = [];
+    document.querySelectorAll('#customQuestionsContainer > div').forEach(card => {
+      const p = card.querySelector('.q-prompt').value.trim();
+      const t = card.querySelector('.q-type').value;
+      const aEl = card.querySelector('.q-ans');
+      const a = aEl ? aEl.value : '';
+      if (p) customQuestions.push({ id: card.dataset.qid, pergunta: p, tipo: t, resposta: a });
+    });
+    
+    metaObj.diagnostico = {
+      fase: document.getElementById('diagFase').value,
+      andamento_anterior: document.getElementById('diagAndamentoAnterior').value,
+      acoes_executadas: document.getElementById('diagAcoesExecutadas').value,
+      cronograma: document.getElementById('diagCronograma').value,
+      resultados_esperados: document.getElementById('diagResultadosEsperados').value,
+      proximas_etapas: document.getElementById('diagProximasEtapas').value,
+      desc_proximas_etapas: document.getElementById('diagDescProximasEtapas').value,
+      risco_prazo: document.getElementById('diagRiscoPrazo').value,
+      perguntas_especificas: customQuestions
+    };
+  } else if (status === 'Atrasada') {
+    const outrasDivs = Array.from(document.querySelectorAll('input[name="divRespAtraso"]:checked')).map(cb => cb.value);
+    metaObj.diagnostico = {
+      motivo_atraso: document.getElementById('diagMotivoAtraso').value,
+      etapa_atraso: document.getElementById('diagEtapaAtraso').value,
+      cenario_anterior: document.getElementById('diagCenarioAnterior').value,
+      impacto_resultados: document.getElementById('diagImpactoResultados').value,
+      responsabilidade_exclusiva: document.getElementById('diagResponsabilidadeExclusiva').value,
+      outras_divisoes_atraso: outrasDivs,
+      acoes_corretivas: document.getElementById('diagAcoesCorretivas').value,
+      desc_acoes_corretivas: document.getElementById('diagDescAcoesDefinidas').value,
+      novo_prazo: document.getElementById('diagNovoPrazo').value,
+      novo_prazo_data: document.getElementById('diagNovoPrazoData').value,
+      risco_cumprimento: document.getElementById('diagRiscoCumprimento').value,
+      prioridade: document.getElementById('diagPrioridadeAtraso').value,
+      apoio_institucional: document.getElementById('diagApoioInstitucional').value,
+      indicacao_apoios: document.getElementById('diagIndicacaoApoios').value
+    };
+  } else if (status === 'Não iniciada') {
+    const deps = Array.from(document.querySelectorAll('input[name="depNaoIniciada"]:checked')).map(cb => cb.value);
+    metaObj.diagnostico = {
+      plano_acao: document.getElementById('diagPlanoAcao').value,
+      desc_plano_acao: document.getElementById('diagDescPlanoAcao').value,
+      prioridade: document.getElementById('diagPrioridadeNaoIniciada').value,
+      dependencias: deps,
+      obs_dependencias: document.getElementById('diagObsDependencias').value,
+      previsao_inicio: document.getElementById('diagPrevisaoInicio').value,
+      acoes_viabilizacao: document.getElementById('diagAcoesViabilizacao').value,
+      desc_acoes_viabilizacao: document.getElementById('diagDescAcoesViabilizacao').value
+    };
+  } else if (status === 'Concluída') {
+    metaObj.diagnostico = {
+      obs_trajetoria: document.getElementById('diagObsTrajetoria').value
+    };
+  } else if (status === 'Não respondida') {
+    metaObj.diagnostico = {
+      justificativa_nao_preenchido: document.getElementById('diagJustificativaNaoPreenchido').value
+    };
+  }
+  
+  metaObj.diagnostico = metaObj.diagnostico || {};
+  metaObj.diagnostico.is_repactuada = isRepact;
+  metaObj.diagnostico.historico_repactuacao = histRepactVal;
+  
+  const ok = await saveMetaToStore(metaObj);
+  if (ok) {
+    closeModal('goalModal');
+    showToast(`Evolução da meta ${metaObj.codigo} salva no Supabase com sucesso!`, 'success');
+    
+    state.selectedMes = metaObj.mes;
+    state.selectedAno = metaObj.ano.toString();
+    elements.selectMesRef.value = state.selectedMes;
+    elements.selectAnoRef.value = state.selectedAno;
+    
+    renderAll();
+  }
+}
+
+function triggerDeleteGoal(metaId) {
+  const meta = state.metas.find(m => m.id === metaId);
+  if (!meta) return;
+  
+  elements.confirmTitle.innerText = "Remover Registro de Meta";
+  elements.confirmBody.innerText = `Tem certeza que deseja remover o registro "${meta.codigo} - ${meta.nome_meta}" (${meta.mes}/${meta.ano})? A exclusão será persistida no banco de dados.`;
+  
+  elements.confirmActionBtn.onclick = async () => {
+    const ok = await softDeleteMetaFromStore(metaId);
+    if (ok) {
+      closeModal('confirmModal');
+      showToast(`Registro de meta removido no Supabase com sucesso.`, 'info');
+      renderAll();
+    }
+  };
+  
+  elements.confirmModal.classList.add('active');
+}
+
+/* ==========================================================================
+   TAB 2: EVOLUÇÃO HISTÓRICA RENDER (GROUPED BY DIRECTORATE WITH DYNAMIC BADGES)
+   ========================================================================== */
+function renderEvolucaoHistorica() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const textColor = isDark ? '#e5e7eb' : '#111827';
+  const gridColor = isDark ? '#273449' : '#e5e7eb';
+  
+  const currentYearMetas = state.metas.filter(m => m.ano.toString() === state.selectedAno.toString());
+  
+  const countsByMonth = {
+    'Atrasada': Array(12).fill(0),
+    'Não iniciada': Array(12).fill(0),
+    'Em andamento': Array(12).fill(0),
+    'Concluída': Array(12).fill(0),
+    'Não respondida': Array(12).fill(0)
+  };
+  
+  currentYearMetas.forEach(m => {
+    const idx = MONTH_ORDER.indexOf(m.mes);
+    if (idx >= 0) {
+      const st = m.status || 'Não respondida';
+      if (countsByMonth[st]) countsByMonth[st][idx]++;
+    }
+  });
+  
+  const ctxLine = document.getElementById('lineEvolutionChart').getContext('2d');
+  if (lineEvolutionChartInst) lineEvolutionChartInst.destroy();
+  
+  lineEvolutionChartInst = new Chart(ctxLine, {
+    type: 'line',
+    data: {
+      labels: ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"],
+      datasets: [
+        { label: 'Atrasadas', data: countsByMonth['Atrasada'], borderColor: '#b21f2d', backgroundColor: 'rgba(178, 31, 45, 0.2)', tension: 0.3 },
+        { label: 'Não Iniciadas', data: countsByMonth['Não iniciada'], borderColor: '#5a5a6a', backgroundColor: 'rgba(90, 90, 106, 0.2)', tension: 0.3 },
+        { label: 'Em Andamento', data: countsByMonth['Em andamento'], borderColor: '#0056b3', backgroundColor: 'rgba(0, 86, 179, 0.2)', tension: 0.3 },
+        { label: 'Concluídas', data: countsByMonth['Concluída'], borderColor: '#1e7e34', backgroundColor: 'rgba(30, 126, 52, 0.2)', tension: 0.3 },
+        { label: 'Não respondida', data: countsByMonth['Não respondida'], borderColor: '#c96a00', backgroundColor: 'rgba(201, 106, 0, 0.2)', tension: 0.3 }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: { ticks: { color: textColor, font: { weight: '600' } }, grid: { color: gridColor } },
+        y: { ticks: { color: textColor, stepSize: 1 }, grid: { color: gridColor } }
+      },
+      plugins: { legend: { labels: { color: textColor, font: { size: 11, weight: '600' } } } }
+    }
+  });
+  
+  const matrixBody = elements.evolutionMatrixBody;
+  matrixBody.innerHTML = '';
+  
+  if (currentYearMetas.length === 0) {
+    matrixBody.innerHTML = `<tr><td colspan="13" style="text-align:center; padding: 2rem; color: #9ca3af;">Nenhuma meta registrada para o ano ${state.selectedAno}.</td></tr>`;
+    return;
+  }
+  
+  const allDirs = getAllDirectorates();
+  
+  allDirs.forEach(dirName => {
+    const dirMetas = currentYearMetas.filter(m => m.diretoria === dirName);
+    if (dirMetas.length > 0) {
+      const dirColor = getDirectorateColor(dirName);
+      
+      // Directorate Header Row
+      const groupHeaderTr = document.createElement('tr');
+      groupHeaderTr.style.background = isDark ? '#1e293b' : '#f3f4f6';
+      groupHeaderTr.innerHTML = `
+        <td colspan="13" style="text-align:left; padding:8px 12px; font-weight:700;">
+          <span class="unit-tag" style="background:${dirColor}; font-size:11px; padding:4px 10px;">${dirName}</span>
+          <span style="font-size:12px; color:#4b5563; margin-left:8px;">(${dirMetas.length} meta(s))</span>
+        </td>
+      `;
+      matrixBody.appendChild(groupHeaderTr);
+
+      const uniqueGoalCodes = Array.from(new Set(dirMetas.map(m => m.codigo)));
+      
+      uniqueGoalCodes.forEach(code => {
+        const goalRecords = dirMetas.filter(m => m.codigo === code);
+        const firstName = goalRecords[0] ? goalRecords[0].nome_meta : code;
+        
+        const tr = document.createElement('tr');
+        tr.style.borderBottom = '1px solid #e5e7eb';
+        let cellsHtml = `<td style="text-align:left; padding:8px 12px; font-size:12px;"><strong>${code}</strong> - ${firstName}</td>`;
+        
+        MONTH_ORDER.forEach(monthStr => {
+          const rec = goalRecords.find(r => r.mes === monthStr);
+          if (rec) {
+            const slug = getStatusCssClass(rec.status);
+            cellsHtml += `<td style="padding:6px;"><span class="status-badge ${slug}" style="font-size:9px;">${rec.status ? rec.status.substring(0, 3) : 'N/I'}</span></td>`;
+          } else {
+            cellsHtml += `<td style="padding:6px; color:#9ca3af; font-size:10px;">s/d</td>`;
+          }
+        });
+        
+        tr.innerHTML = cellsHtml;
+        matrixBody.appendChild(tr);
+      });
+    }
+  });
+}
+
+/* ==========================================================================
+   TAB 3: HISTÓRICO DE ANOS ANTERIORES RENDER
+   ========================================================================== */
+function renderHistoricoAnos() {
+  const container = elements.yearHistoryContainer;
+  container.innerHTML = '';
+  
+  const yearsMap = {};
+  state.metas.forEach(m => {
+    const yr = m.ano ? m.ano.toString() : '2026';
+    if (!yearsMap[yr]) yearsMap[yr] = [];
+    yearsMap[yr].push(m);
+  });
+  
+  const sortedYears = Object.keys(yearsMap).sort((a, b) => parseInt(b) - parseInt(a));
+  
+  if (sortedYears.length === 0) {
+    container.innerHTML = `<div class="empty-state"><i class="fa-solid fa-box-archive"></i><h3>Nenhum histórico arquivado</h3></div>`;
+    return;
+  }
+  
+  sortedYears.forEach((yearStr, idx) => {
+    const yearMetas = yearsMap[yearStr];
+    const uniqueGoalCodes = Array.from(new Set(yearMetas.map(m => m.codigo)));
+    
+    let concluidasCount = 0;
+    let emAndamentoCount = 0;
+    let atrasadasCount = 0;
+    let naoIniciadasCount = 0;
+    let naoInformadasCount = 0;
+    
+    uniqueGoalCodes.forEach(code => {
+      const records = yearMetas.filter(m => m.codigo === code);
+      records.sort((a, b) => MONTH_ORDER.indexOf(b.mes) - MONTH_ORDER.indexOf(a.mes));
+      const latest = records[0];
+      const st = latest ? latest.status : 'Não respondida';
+      
+      if (st === 'Concluída') concluidasCount++;
+      else if (st === 'Em andamento') emAndamentoCount++;
+      else if (st === 'Atrasada') atrasadasCount++;
+      else if (st === 'Não iniciada') naoIniciadasCount++;
+      else naoInformadasCount++;
+    });
+    
+    const card = document.createElement('article');
+    card.className = 'history-section';
+    
+    const isFirst = idx === 0;
+    
+    card.innerHTML = `
+      <div class="year-card-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="history-year-badge">Exercício ${yearStr}</span>
+          <span style="font-size: 12px; font-weight: 600; color: #6b7280;">${uniqueGoalCodes.length} Metas Únicas</span>
+          <i class="fa-solid fa-chevron-down year-chevron ${isFirst ? 'open' : ''}" style="transition: transform 0.2s; ${isFirst ? 'transform: rotate(180deg);' : ''}"></i>
+        </div>
+        <button class="btn btn-danger btn-sm btn-excluir-ano-sp" data-year="${yearStr}">
+          <i class="fa-solid fa-trash"></i> Excluir Ano ${yearStr}
+        </button>
+      </div>
+
+      <div class="year-card-body" style="display: ${isFirst ? 'block' : 'none'}; margin-top: 14px;">
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px;">
+          <span class="status-badge badge-ok">Concluídas: ${concluidasCount}</span>
+          <span class="status-badge badge-ea">Em Andamento: ${emAndamentoCount}</span>
+          <span class="status-badge badge-at">Atrasadas: ${atrasadasCount}</span>
+          <span class="status-badge badge-ni">Não Iniciadas: ${naoIniciadasCount}</span>
+          <span class="status-badge badge-nao-informado">Não Respondidas: ${naoInformadasCount}</span>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          ${renderYearUniqueGoalCardsHTML(yearMetas, uniqueGoalCodes)}
+        </div>
+      </div>
+    `;
+    
+    const headerEl = card.querySelector('.year-card-header');
+    const bodyEl = card.querySelector('.year-card-body');
+    const chevronEl = card.querySelector('.year-chevron');
+    
+    headerEl.addEventListener('click', (e) => {
+      if (e.target.closest('.btn-excluir-ano-sp')) return;
+      const isOpen = bodyEl.style.display !== 'none';
+      bodyEl.style.display = isOpen ? 'none' : 'block';
+      chevronEl.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+    });
+    
+    card.querySelector('.btn-excluir-ano-sp').addEventListener('click', (e) => {
+      e.stopPropagation();
+      requestSecurityAuthorization(() => triggerExcluirAno(yearStr));
+    });
+    
+    card.querySelectorAll('[data-open-drawer]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const code = btn.dataset.code;
+        const yr = btn.dataset.year;
+        openGoalHistoryDrawer(code, yr);
+      });
+    });
+    
+    container.appendChild(card);
+  });
+}
+
+function renderYearUniqueGoalCardsHTML(yearMetas, uniqueGoalCodes) {
+  let html = '';
+  uniqueGoalCodes.forEach(code => {
+    const records = yearMetas.filter(m => m.codigo === code);
+    records.sort((a, b) => MONTH_ORDER.indexOf(b.mes) - MONTH_ORDER.indexOf(a.mes));
+    const latest = records[0];
+    const slug = getStatusCssClass(latest.status);
+    const unitColor = getDirectorateColor(latest.diretoria);
+    
+    html += `
+      <div class="history-detail-row">
+        <div class="history-detail-head">
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <span class="status-badge ${slug}">${latest.status || 'Não respondida'}</span>
+            <span class="unit-tag" style="background:${unitColor};" data-u="${latest.diretoria}">${latest.diretoria}</span>
+            <strong style="font-size: 13px;">${latest.codigo} - ${latest.nome_meta}</strong>
+          </div>
+          <button class="btn btn-outline btn-sm" data-open-drawer="true" data-code="${code}" data-year="${latest.ano}">
+            <i class="fa-solid fa-clock-rotate-left"></i> Histórico Mensal (${records.length})
+          </button>
+        </div>
+      </div>
+    `;
+  });
+  return html;
+}
+
+function openGoalHistoryDrawer(code, yearStr) {
+  const records = state.metas.filter(m => m.codigo === code && m.ano.toString() === yearStr.toString());
+  records.sort((a, b) => MONTH_ORDER.indexOf(a.mes) - MONTH_ORDER.indexOf(b.mes));
+  
+  elements.historyDrawerTitle.innerText = `Histórico Mensal: ${code} (${yearStr})`;
+  
+  let html = `<div style="display:flex; flex-direction:column; gap: 12px;">`;
+  records.forEach(m => {
+    const slug = getStatusCssClass(m.status);
+    const unitColor = getDirectorateColor(m.diretoria);
+    const bullets = renderCardBulletsHTML(m.status, m.diagnostico, m.historico_repactuacao);
+    html += `
+      <div class="meta-card" data-status="${m.status}">
+        <div class="meta-header" style="cursor:default;">
+          <span class="status-badge ${slug}">${m.status}</span>
+          <span class="unit-tag" style="background:${unitColor};" data-u="${m.diretoria}">${m.diretoria}</span>
+          <div class="meta-header-meta">
+            <div class="meta-name-text"><strong>Mês: ${m.mes} / ${m.ano}</strong></div>
+            <div class="meta-header-line">
+              <span>Responsável: ${m.responsavel}</span>
+            </div>
+          </div>
+        </div>
+        <div class="meta-body" style="display:block;">
+          ${bullets}
+        </div>
+      </div>
+    `;
+  });
+  html += `</div>`;
+  
+  elements.historyDrawerBody.innerHTML = html;
+  elements.historyDrawerModal.classList.add('active');
+}
+
+/* ==========================================================================
+   EXCLUSÃO DE ANO NO SUPABASE
+   ========================================================================== */
+function triggerExcluirAnoGeral() {
+  const yearToDelete = state.selectedAno || "2025";
+  triggerExcluirAno(yearToDelete);
+}
+
+function triggerExcluirAno(yearStr) {
+  elements.confirmTitle.innerText = `Excluir Ano ${yearStr}`;
+  elements.confirmBody.innerText = `ATENÇÃO: Você está prestes a excluir TODOS os registros de metas do exercício ${yearStr} diretamente no Supabase. Deseja confirmar?`;
+  
+  elements.confirmActionBtn.onclick = async () => {
+    closeModal('confirmModal');
+    await executeYearDeletionCascade(yearStr);
+  };
+  
+  elements.confirmModal.classList.add('active');
+}
+
+async function executeYearDeletionCascade(yearStr) {
+  const yrNum = parseInt(yearStr);
+  if (!supabase) {
+    showToast("Não foi possível conectar ao banco de dados. Exclusão cancelada.", "error");
+    return;
+  }
+  
+  let success = false;
+  
+  try {
+    const { error: rpcErr } = await supabase.rpc('excluir_ano_metas', { target_ano: yrNum });
+    if (!rpcErr) {
+      success = true;
+    } else {
+      const { error: deleteErr } = await supabase.from('metas_codae').delete().eq('ano', yrNum);
+      if (!deleteErr) {
+        success = true;
+      } else {
+        const { error: updateErr } = await supabase.from('metas_codae').update({ ativo: false, atualizado_em: new Date().toISOString() }).eq('ano', yrNum);
+        if (!updateErr) success = true;
+      }
+    }
+  } catch (e) {
+    console.error("Exceção ao excluir ano no Supabase:", e);
+  }
+  
+  if (success) {
+    await loadMetas();
+    showToast(`Exercício ${yearStr} excluído no Supabase com sucesso!`, 'success');
+    renderAll();
+  } else {
+    showToast(`Erro ao excluir o exercício ${yearStr} no banco de dados.`, 'error');
+  }
+}
+
+/* ==========================================================================
+   TOAST NOTIFICATION ENGINE
+   ========================================================================== */
+function showToast(message, type = 'info') {
+  const toast = document.createElement('div');
+  toast.className = `toast show ${type}`;
+  toast.innerHTML = `<i class="fa-solid fa-circle-info"></i> <span>${message}</span>`;
+  elements.toastContainer.appendChild(toast);
+  
+  setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => toast.remove(), 300);
+  }, 3500);
+}
+
+  </script>
+
+  <!-- Complemento pontual: KPIs de Encerradas e Pausadas -->
+  <script>
+    (() => {
+      const normalizeStatus = (value) => String(value || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .trim()
+        .toLowerCase();
+
+      const setKpi = (id, value) => {
+        const element = document.getElementById(id);
+        if (element) element.textContent = Number.isFinite(Number(value)) ? Number(value) : 0;
+      };
+
+      const readCountsFromDonut = () => {
+        try {
+          if (!window.Chart || typeof window.Chart.getChart !== 'function') return null;
+
+          const chart = window.Chart.getChart('donutChart');
+          const labels = chart?.data?.labels;
+          const data = chart?.data?.datasets?.[0]?.data;
+          if (!Array.isArray(labels) || !Array.isArray(data)) return null;
+
+          const normalizedLabels = labels.map(normalizeStatus);
+          const findValue = (singular, plural) => {
+            const index = normalizedLabels.findIndex(label => label === singular || label === plural);
+            return index >= 0 ? Number(data[index] || 0) : null;
+          };
+
+          return {
+            encerradas: findValue('encerrada', 'encerradas'),
+            pausadas: findValue('pausada', 'pausadas')
+          };
+        } catch (_) {
+          return null;
+        }
+      };
+
+      const countStatusesFromRenderedGoals = () => {
+        const container = document.getElementById('goalsListContainer');
+        if (!container) return { encerradas: 0, pausadas: 0 };
+
+        const text = container.innerText || '';
+        const encerradas = (text.match(/\bEncerrada\b/gi) || []).length;
+        const pausadas = (text.match(/\bPausada\b/gi) || []).length;
+        return { encerradas, pausadas };
+      };
+
+      const updateExtraKpis = () => {
+        const chartCounts = readCountsFromDonut();
+        const renderedCounts = countStatusesFromRenderedGoals();
+
+        const encerradas = chartCounts?.encerradas ?? renderedCounts.encerradas;
+        const pausadas = chartCounts?.pausadas ?? renderedCounts.pausadas;
+
+        setKpi('kpiEncerradas', encerradas);
+        setKpi('kpiPausadas', pausadas);
+      };
+
+      const scheduleUpdate = () => {
+        window.setTimeout(updateExtraKpis, 0);
+        window.setTimeout(updateExtraKpis, 150);
+        window.setTimeout(updateExtraKpis, 500);
+      };
+
+      document.addEventListener('DOMContentLoaded', () => {
+        const goalsContainer = document.getElementById('goalsListContainer');
+        if (goalsContainer) {
+          new MutationObserver(scheduleUpdate).observe(goalsContainer, {
+            childList: true,
+            subtree: true,
+            characterData: true
+          });
+        }
+
+        ['selectMesRef', 'selectAnoRef', 'filterStatusSelect', 'searchInput'].forEach(id => {
+          const element = document.getElementById(id);
+          if (!element) return;
+          element.addEventListener('change', scheduleUpdate);
+          element.addEventListener('input', scheduleUpdate);
+        });
+
+        document.addEventListener('click', (event) => {
+          if (event.target.closest('#unitPillsContainer, #btnLimparFiltros')) {
+            scheduleUpdate();
+          }
+        });
+
+        scheduleUpdate();
+        window.setTimeout(updateExtraKpis, 1000);
+        window.setTimeout(updateExtraKpis, 2500);
+      });
+    })();
+  </script>
+</body>
+</html>
