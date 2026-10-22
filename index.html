@@ -94,6 +94,12 @@
         #tab-visao-mensal .kpi-card.pausada .kpi-num {
           color: #7c3aed;
         }
+        #tab-visao-mensal .kpi-card.concluida-parcialmente {
+          border-top: 3px solid #0f766e;
+        }
+        #tab-visao-mensal .kpi-card.concluida-parcialmente .kpi-num {
+          color: #0f766e;
+        }
         @media (max-width: 900px) {
           #tab-visao-mensal .kpi-grid.kpi-grid-8 {
             grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -153,6 +159,12 @@
           <div class="kpi-lbl">Pausadas</div>
           <div class="kpi-sub">Temporariamente suspensas</div>
         </div>
+
+        <div class="kpi-card concluida-parcialmente">
+          <div id="kpiConcluidasParcialmente" class="kpi-num">0</div>
+          <div class="kpi-lbl">Concluídas Parcialmente</div>
+          <div class="kpi-sub">Execução parcial concluída</div>
+        </div>
       </div>
 
       <!-- Analytics Charts Row -->
@@ -203,9 +215,7 @@
         <div class="filter-group">
           <label for="selectAnoRef">Ano</label>
           <select id="selectAnoRef">
-            <option value="2026">2026</option>
-            <option value="2025">2025</option>
-            <option value="2024">2024</option>
+            <!-- Opções preenchidas dinamicamente a partir dos anos existentes nas metas cadastradas -->
           </select>
         </div>
 
@@ -217,6 +227,7 @@
             <option value="Não iniciada">Não iniciadas</option>
             <option value="Em andamento">Em andamento</option>
             <option value="Concluída">Concluídas</option>
+            <option value="Concluída parcialmente">Concluídas parcialmente</option>
             <option value="Não respondida">Não respondida</option>
             <option value="Encerrada">Encerrada</option>
             <option value="Pausada">Pausada</option>
@@ -427,6 +438,7 @@
                 <option value="Atrasada">Atrasada</option>
                 <option value="Não iniciada">Não iniciada</option>
                 <option value="Concluída">Concluída</option>
+                <option value="Concluída parcialmente">Concluída parcialmente</option>
                 <option value="Não respondida">Não respondida</option>
                 <option value="Encerrada">Encerrada</option>
                 <option value="Pausada">Pausada</option>
@@ -774,7 +786,27 @@
 
 
 
-          <!-- 6. NÃO RESPONDIDA -->
+          <!-- 5. ENCERRADA -->
+          <div id="diagEncerradaBox" style="display: none; border-top: 1px solid #e5e7eb; padding-top: 14px; margin-top: 14px;">
+            <div class="status-fields-title" style="color: #475569;">Diagnóstico: Encerrada</div>
+
+            <div class="form-full">
+              <label class="form-label" for="diagMotivoEncerramento">Motivo do encerramento</label>
+              <textarea id="diagMotivoEncerramento" class="form-control" placeholder="Descreva o motivo do encerramento da meta..."></textarea>
+            </div>
+          </div>
+
+          <!-- 6. PAUSADA -->
+          <div id="diagPausadaBox" style="display: none; border-top: 1px solid #e5e7eb; padding-top: 14px; margin-top: 14px;">
+            <div class="status-fields-title" style="color: #7c3aed;">Diagnóstico: Pausada</div>
+
+            <div class="form-full">
+              <label class="form-label" for="diagMotivoPausa">Motivo da pausa</label>
+              <textarea id="diagMotivoPausa" class="form-control" placeholder="Descreva o motivo da pausa da meta..."></textarea>
+            </div>
+          </div>
+
+          <!-- 7. NÃO RESPONDIDA -->
           <div id="diagNaoRespondidaBox" style="display: none; border-top: 1px solid #e5e7eb; padding-top: 14px; margin-top: 14px;">
             <div class="status-fields-title" style="color: #c96a00;">Status: Não Respondida</div>
 
@@ -1043,6 +1075,7 @@ const elements = {
   headerSubtitle: document.getElementById('headerSubtitle'),
   themeSelect: document.getElementById('themeSelect'),
   btnGerenciarDiretorias: document.getElementById('btnGerenciarDiretorias'),
+  btnNovaDiretoriaModal: document.getElementById('btnNovaDiretoriaModal'),
   btnNovaEvolucao: document.getElementById('btnNovaEvolucao'),
   tabButtons: document.querySelectorAll('.tab-btn'),
   tabContents: document.querySelectorAll('.tab-content'),
@@ -1064,6 +1097,9 @@ const elements = {
   kpiNaoIniciadas: document.getElementById('kpiNaoIniciadas'),
   kpiRepactuadas: document.getElementById('kpiRepactuadas'),
   kpiNaoInformadas: document.getElementById('kpiNaoInformadas'),
+  kpiEncerradas: document.getElementById('kpiEncerradas'),
+  kpiPausadas: document.getElementById('kpiPausadas'),
+  kpiConcluidasParcialmente: document.getElementById('kpiConcluidasParcialmente'),
   
   // Goals List
   goalsListContainer: document.getElementById('goalsListContainer'),
@@ -1092,6 +1128,8 @@ const elements = {
   diagNaoIniciadaBox: document.getElementById('diagNaoIniciadaBox'),
   diagConcluidaBox: document.getElementById('diagConcluidaBox'),
   diagRepactuadaBox: document.getElementById('diagRepactuadaBox'),
+  diagEncerradaBox: document.getElementById('diagEncerradaBox'),
+  diagPausadaBox: document.getElementById('diagPausadaBox'),
   diagNaoRespondidaBox: document.getElementById('diagNaoRespondidaBox'),
   diagHistoricoRepactuacao: document.getElementById('diagHistoricoRepactuacao'),
   
@@ -1102,6 +1140,7 @@ const elements = {
   manageDirectoratesModal: document.getElementById('manageDirectoratesModal'),
   directoratesListContainer: document.getElementById('directoratesListContainer'),
   editDirectorateModal: document.getElementById('editDirectorateModal'),
+  editDirectorateTitle: document.getElementById('editDirectorateTitle'),
   editDirectorateForm: document.getElementById('editDirectorateForm'),
   editDirectorateOldName: document.getElementById('editDirectorateOldName'),
   editDirectorateName: document.getElementById('editDirectorateName'),
@@ -1479,18 +1518,59 @@ function initRealtimeSubscription() {
     .subscribe();
 }
 
-/* --- Auto Select Most Recent Month/Year --- */
+/* --- Dynamic Year Filter + Auto Select Most Recent Month/Year --- */
+function syncYearFilterOptions() {
+  if (!elements.selectAnoRef) return;
+
+  const years = [...new Set(
+    state.metas
+      .map(m => Number(m.ano))
+      .filter(ano => Number.isFinite(ano))
+  )].sort((a, b) => b - a);
+
+  elements.selectAnoRef.innerHTML = '';
+
+  if (years.length === 0) {
+    const option = document.createElement('option');
+    option.value = '';
+    option.textContent = 'Nenhum ano cadastrado';
+    elements.selectAnoRef.appendChild(option);
+    elements.selectAnoRef.disabled = true;
+    state.selectedAno = '';
+    return;
+  }
+
+  elements.selectAnoRef.disabled = false;
+
+  years.forEach(ano => {
+    const option = document.createElement('option');
+    option.value = ano.toString();
+    option.textContent = ano.toString();
+    elements.selectAnoRef.appendChild(option);
+  });
+
+  if (!years.some(ano => ano.toString() === state.selectedAno.toString())) {
+    state.selectedAno = years[0].toString();
+  }
+
+  elements.selectAnoRef.value = state.selectedAno;
+}
+
 function autoSelectLatestMonthYear() {
   if (state.metas.length === 0) {
     state.selectedMes = "Fevereiro";
-    state.selectedAno = "2026";
+    state.selectedAno = "";
+    syncYearFilterOptions();
+    elements.selectMesRef.value = state.selectedMes;
     return;
   }
   
-  const years = state.metas.map(m => parseInt(m.ano) || 2026);
+  const years = state.metas
+    .map(m => Number(m.ano))
+    .filter(ano => Number.isFinite(ano));
   const maxYear = Math.max(...years);
   
-  const metasInMaxYear = state.metas.filter(m => (parseInt(m.ano) || 2026) === maxYear);
+  const metasInMaxYear = state.metas.filter(m => Number(m.ano) === maxYear);
   let maxMonthIdx = -1;
   let maxMonthStr = "Fevereiro";
   
@@ -1505,6 +1585,7 @@ function autoSelectLatestMonthYear() {
   state.selectedAno = maxYear.toString();
   state.selectedMes = maxMonthStr;
   
+  syncYearFilterOptions();
   elements.selectAnoRef.value = state.selectedAno;
   elements.selectMesRef.value = state.selectedMes;
 }
@@ -1543,6 +1624,22 @@ function initDirectoratesManagerEvents() {
   elements.btnGerenciarDiretorias.addEventListener('click', () => {
     renderDirectoratesManagerList();
     elements.manageDirectoratesModal.classList.add('active');
+  });
+
+  elements.btnNovaDiretoriaModal.addEventListener('click', () => {
+    elements.editDirectorateTitle.innerText = 'Criar Diretoria';
+    elements.editDirectorateOldName.value = '';
+    elements.editDirectorateName.value = '';
+    elements.editDirectorateColor.value = '#177c54';
+    elements.editDirectorateHex.value = '#177c54';
+
+    elements.editDirectorateColor.oninput = (e) => { elements.editDirectorateHex.value = e.target.value; };
+    elements.editDirectorateHex.oninput = (e) => {
+      if (/^#[0-9A-F]{6}$/i.test(e.target.value)) elements.editDirectorateColor.value = e.target.value;
+    };
+
+    elements.editDirectorateModal.classList.add('active');
+    setTimeout(() => elements.editDirectorateName.focus(), 100);
   });
 
   elements.editDirectorateForm.addEventListener('submit', async (e) => {
@@ -1590,6 +1687,7 @@ function renderDirectoratesManagerList() {
 }
 
 function openEditDirectorateModal(dirName) {
+  elements.editDirectorateTitle.innerText = 'Editar Diretoria';
   elements.editDirectorateOldName.value = dirName;
   elements.editDirectorateName.value = dirName;
   const currentColor = getDirectorateColor(dirName);
@@ -1608,6 +1706,7 @@ async function saveDirectorateEdit() {
   const oldName = elements.editDirectorateOldName.value.trim();
   const newName = elements.editDirectorateName.value.trim();
   const newColor = elements.editDirectorateHex.value.trim() || elements.editDirectorateColor.value;
+  const isCreating = !oldName;
 
   if (!newName) {
     showToast("O nome da diretoria não pode ficar vazio.", "error");
@@ -1615,6 +1714,23 @@ async function saveDirectorateEdit() {
   }
 
   if (!state.config.customDirectoratesMap) state.config.customDirectoratesMap = {};
+
+  if (isCreating) {
+    const alreadyExists = getAllDirectorates().some(dir => dir.toLowerCase() === newName.toLowerCase());
+    if (alreadyExists) {
+      showToast(`A diretoria "${newName}" já existe.`, "error");
+      return;
+    }
+
+    state.config.customDirectoratesMap[newName] = newColor;
+    await saveConfig({ customDirectoratesMap: state.config.customDirectoratesMap });
+
+    closeModal('editDirectorateModal');
+    renderDirectoratesManagerList();
+    renderAll();
+    showToast(`Diretoria "${newName}" criada com sucesso!`, "success");
+    return;
+  }
 
   if (oldName !== newName) {
     state.config.customDirectoratesMap[oldName] = '__DELETED__';
@@ -1787,6 +1903,7 @@ function getFilteredMetas() {
    RENDERER PIPELINE
    ========================================================================== */
 function renderAll() {
+  syncYearFilterOptions();
   elements.displayRefMonthBadge.innerText = `${state.selectedMes} / ${state.selectedAno}`;
   renderUnitPills();
   
@@ -1810,6 +1927,9 @@ function renderKPIs(filteredMetas) {
   const atrasadas = filteredMetas.filter(m => m.status === 'Atrasada').length;
   const naoIniciadas = filteredMetas.filter(m => m.status === 'Não iniciada').length;
   const naoInformadas = filteredMetas.filter(m => m.status === 'Não respondida' || !m.status).length;
+  const encerradas = filteredMetas.filter(m => m.status === 'Encerrada').length;
+  const pausadas = filteredMetas.filter(m => m.status === 'Pausada').length;
+  const concluidasParcialmente = filteredMetas.filter(m => m.status === 'Concluída parcialmente').length;
   
   if (elements.kpiTotal) elements.kpiTotal.innerText = total;
   if (elements.kpiConcluidas) elements.kpiConcluidas.innerText = concluidas;
@@ -1817,6 +1937,9 @@ function renderKPIs(filteredMetas) {
   if (elements.kpiAtrasadas) elements.kpiAtrasadas.innerText = atrasadas;
   if (elements.kpiNaoIniciadas) elements.kpiNaoIniciadas.innerText = naoIniciadas;
   if (elements.kpiNaoInformadas) elements.kpiNaoInformadas.innerText = naoInformadas;
+  if (elements.kpiEncerradas) elements.kpiEncerradas.innerText = encerradas;
+  if (elements.kpiPausadas) elements.kpiPausadas.innerText = pausadas;
+  if (elements.kpiConcluidasParcialmente) elements.kpiConcluidasParcialmente.innerText = concluidasParcialmente;
 }
 
 /* --- 2. Chart.js Visualizations --- */
@@ -1830,11 +1953,14 @@ function renderCharts(filteredMetas = getFilteredMetas()) {
     'Não iniciada': filteredMetas.filter(m => m.status === 'Não iniciada').length,
     'Em andamento': filteredMetas.filter(m => m.status === 'Em andamento').length,
     'Concluída': filteredMetas.filter(m => m.status === 'Concluída').length,
+    'Concluída parcialmente': filteredMetas.filter(m => m.status === 'Concluída parcialmente').length,
+    'Encerrada': filteredMetas.filter(m => m.status === 'Encerrada').length,
+    'Pausada': filteredMetas.filter(m => m.status === 'Pausada').length,
     'Não respondida': filteredMetas.filter(m => m.status === 'Não respondida' || !m.status).length
   };
   
   const totalCount = filteredMetas.length || 1;
-  const donutData = [counts['Atrasada'], counts['Não iniciada'], counts['Em andamento'], counts['Concluída'], counts['Não respondida']];
+  const donutData = [counts['Atrasada'], counts['Não iniciada'], counts['Em andamento'], counts['Concluída'], counts['Concluída parcialmente'], counts['Encerrada'], counts['Pausada'], counts['Não respondida']];
   
   // DONUT CHART
   const ctxDonut = document.getElementById('donutChart').getContext('2d');
@@ -1843,10 +1969,10 @@ function renderCharts(filteredMetas = getFilteredMetas()) {
   donutChartInst = new Chart(ctxDonut, {
     type: 'doughnut',
     data: {
-      labels: ['Atrasadas', 'Não Iniciadas', 'Em Andamento', 'Concluídas', 'Não respondida'],
+      labels: ['Atrasadas', 'Não Iniciadas', 'Em Andamento', 'Concluídas', 'Concluídas parcialmente', 'Encerradas', 'Pausadas', 'Não respondida'],
       datasets: [{
         data: donutData,
-        backgroundColor: ['#b21f2d', '#5a5a6a', '#0056b3', '#1e7e34', '#c96a00'],
+        backgroundColor: ['#b21f2d', '#5a5a6a', '#0056b3', '#1e7e34', '#0f766e', '#475569', '#7c3aed', '#c96a00'],
         borderWidth: 2,
         borderColor: isDark ? '#111827' : '#ffffff'
       }]
@@ -1866,6 +1992,9 @@ function renderCharts(filteredMetas = getFilteredMetas()) {
       { label: 'Não Iniciadas', val: counts['Não iniciada'], color: '#5a5a6a' },
       { label: 'Em Andamento', val: counts['Em andamento'], color: '#0056b3' },
       { label: 'Concluídas', val: counts['Concluída'], color: '#1e7e34' },
+      { label: 'Concluídas parcialmente', val: counts['Concluída parcialmente'], color: '#0f766e' },
+      { label: 'Encerradas', val: counts['Encerrada'], color: '#475569' },
+      { label: 'Pausadas', val: counts['Pausada'], color: '#7c3aed' },
       { label: 'Não respondida', val: counts['Não respondida'], color: '#c96a00' }
     ];
     elements.pieLegend.innerHTML = legendItems.map(item => {
@@ -1885,6 +2014,9 @@ function renderCharts(filteredMetas = getFilteredMetas()) {
     { label: 'Não Iniciadas', statusStr: 'Não iniciada', color: '#5a5a6a' },
     { label: 'Em Andamento', statusStr: 'Em andamento', color: '#0056b3' },
     { label: 'Concluídas', statusStr: 'Concluída', color: '#1e7e34' },
+    { label: 'Concluídas parcialmente', statusStr: 'Concluída parcialmente', color: '#0f766e' },
+    { label: 'Encerradas', statusStr: 'Encerrada', color: '#475569' },
+    { label: 'Pausadas', statusStr: 'Pausada', color: '#7c3aed' },
     { label: 'Não respondida', statusStr: 'Não respondida', color: '#c96a00' }
   ];
   
@@ -1937,7 +2069,10 @@ function renderGoalsList(filteredMetas) {
     { key: "Atrasada", title: "Metas Atrasadas", slug: "at", icon: "fa-triangle-exclamation" },
     { key: "Não iniciada", title: "Metas Não Iniciadas", slug: "ni", icon: "fa-hourglass-start" },
     { key: "Em andamento", title: "Metas Em Andamento", slug: "ea", icon: "fa-spinner" },
+    { key: "Concluída parcialmente", title: "Metas Concluídas Parcialmente", slug: "ok", icon: "fa-circle-half-stroke" },
     { key: "Concluída", title: "Metas Concluídas", slug: "ok", icon: "fa-circle-check" },
+    { key: "Encerrada", title: "Metas Encerradas", slug: "ni", icon: "fa-circle-stop" },
+    { key: "Pausada", title: "Metas Pausadas", slug: "ea", icon: "fa-circle-pause" },
     { key: "Não respondida", title: "Metas Não Respondidas", slug: "nao-informado", icon: "fa-circle-question" }
   ];
   
@@ -2113,6 +2248,9 @@ function getStatusCssClass(status) {
     case 'Não iniciada': return 'badge-ni';
     case 'Em andamento': return 'badge-ea';
     case 'Concluída': return 'badge-ok';
+    case 'Concluída parcialmente': return 'badge-ok';
+    case 'Encerrada': return 'badge-ni';
+    case 'Pausada': return 'badge-ea';
     case 'Repactuada': return 'badge-repactuada';
     default: return 'badge-nao-informado';
   }
@@ -2124,6 +2262,9 @@ function getStatusDotColor(status) {
     case 'Não iniciada': return '#5a5a6a';
     case 'Em andamento': return '#0056b3';
     case 'Concluída': return '#1e7e34';
+    case 'Concluída parcialmente': return '#0f766e';
+    case 'Encerrada': return '#475569';
+    case 'Pausada': return '#7c3aed';
     default: return '#c96a00';
   }
 }
@@ -2203,9 +2344,17 @@ function renderCardBulletsHTML(status, diag, historicoRepactuacao, shouldShowRep
     if (diag.desc_acoes_viabilizacao) html += `<div class="resumo-box"><strong>Descreva as ações:</strong>\n${diag.desc_acoes_viabilizacao}</div>`;
     html += `</div>`;
     
-  } else if (status === 'Concluída') {
+  } else if (status === 'Concluída' || status === 'Concluída parcialmente') {
     if (diag.obs_trajetoria) {
       html += `<div class="status-section-concluida"><div class="resumo-box" style="background:#f0fdf4; border-color:#bbf7d0; color:#14532d;"><strong>Observações sobre a trajetória da meta:</strong>\n${diag.obs_trajetoria}</div></div>`;
+    }
+  } else if (status === 'Encerrada') {
+    if (diag.motivo_encerramento) {
+      html += `<div class="motivo-box"><strong>Motivo do encerramento:</strong>\n${diag.motivo_encerramento}</div>`;
+    }
+  } else if (status === 'Pausada') {
+    if (diag.motivo_pausa) {
+      html += `<div class="motivo-box"><strong>Motivo da pausa:</strong>\n${diag.motivo_pausa}</div>`;
     }
   } else if (status === 'Não respondida') {
     if (diag.justificativa_nao_preenchido) {
@@ -2384,7 +2533,9 @@ function updateFormDiagnosticFieldsVisibility(status) {
   elements.diagEmAndamentoBox.style.display = status === 'Em andamento' ? 'block' : 'none';
   elements.diagAtrasadaBox.style.display = status === 'Atrasada' ? 'block' : 'none';
   elements.diagNaoIniciadaBox.style.display = status === 'Não iniciada' ? 'block' : 'none';
-  elements.diagConcluidaBox.style.display = status === 'Concluída' ? 'block' : 'none';
+  elements.diagConcluidaBox.style.display = (status === 'Concluída' || status === 'Concluída parcialmente') ? 'block' : 'none';
+  elements.diagEncerradaBox.style.display = status === 'Encerrada' ? 'block' : 'none';
+  elements.diagPausadaBox.style.display = status === 'Pausada' ? 'block' : 'none';
   elements.diagNaoRespondidaBox.style.display = status === 'Não respondida' ? 'block' : 'none';
 }
 
@@ -2481,6 +2632,8 @@ function populateFormDiagnostics(diag, historicoRepactuacao, isRepactuada) {
   document.getElementById('diagDescAcoesViabilizacao').value = diag.desc_acoes_viabilizacao || '';
   
   document.getElementById('diagObsTrajetoria').value = diag.obs_trajetoria || '';
+  document.getElementById('diagMotivoEncerramento').value = diag.motivo_encerramento || '';
+  document.getElementById('diagMotivoPausa').value = diag.motivo_pausa || '';
   elements.diagHistoricoRepactuacao.value = historicoRepactuacao || (diag ? diag.historico_repactuacao : '') || '';
   document.getElementById('diagJustificativaNaoPreenchido').value = diag.justificativa_nao_preenchido || '';
 }
@@ -2647,9 +2800,17 @@ async function saveGoalForm() {
       acoes_viabilizacao: document.getElementById('diagAcoesViabilizacao').value,
       desc_acoes_viabilizacao: document.getElementById('diagDescAcoesViabilizacao').value
     };
-  } else if (status === 'Concluída') {
+  } else if (status === 'Concluída' || status === 'Concluída parcialmente') {
     metaObj.diagnostico = {
       obs_trajetoria: document.getElementById('diagObsTrajetoria').value
+    };
+  } else if (status === 'Encerrada') {
+    metaObj.diagnostico = {
+      motivo_encerramento: document.getElementById('diagMotivoEncerramento').value
+    };
+  } else if (status === 'Pausada') {
+    metaObj.diagnostico = {
+      motivo_pausa: document.getElementById('diagMotivoPausa').value
     };
   } else if (status === 'Não respondida') {
     metaObj.diagnostico = {
@@ -2709,6 +2870,9 @@ function renderEvolucaoHistorica() {
     'Não iniciada': Array(12).fill(0),
     'Em andamento': Array(12).fill(0),
     'Concluída': Array(12).fill(0),
+    'Concluída parcialmente': Array(12).fill(0),
+    'Encerrada': Array(12).fill(0),
+    'Pausada': Array(12).fill(0),
     'Não respondida': Array(12).fill(0)
   };
   
@@ -2732,6 +2896,9 @@ function renderEvolucaoHistorica() {
         { label: 'Não Iniciadas', data: countsByMonth['Não iniciada'], borderColor: '#5a5a6a', backgroundColor: 'rgba(90, 90, 106, 0.2)', tension: 0.3 },
         { label: 'Em Andamento', data: countsByMonth['Em andamento'], borderColor: '#0056b3', backgroundColor: 'rgba(0, 86, 179, 0.2)', tension: 0.3 },
         { label: 'Concluídas', data: countsByMonth['Concluída'], borderColor: '#1e7e34', backgroundColor: 'rgba(30, 126, 52, 0.2)', tension: 0.3 },
+        { label: 'Concluídas parcialmente', data: countsByMonth['Concluída parcialmente'], borderColor: '#0f766e', backgroundColor: 'rgba(15, 118, 110, 0.2)', tension: 0.3 },
+        { label: 'Encerradas', data: countsByMonth['Encerrada'], borderColor: '#475569', backgroundColor: 'rgba(71, 85, 105, 0.2)', tension: 0.3 },
+        { label: 'Pausadas', data: countsByMonth['Pausada'], borderColor: '#7c3aed', backgroundColor: 'rgba(124, 58, 237, 0.2)', tension: 0.3 },
         { label: 'Não respondida', data: countsByMonth['Não respondida'], borderColor: '#c96a00', backgroundColor: 'rgba(201, 106, 0, 0.2)', tension: 0.3 }
       ]
     },
@@ -2828,6 +2995,9 @@ function renderHistoricoAnos() {
     let emAndamentoCount = 0;
     let atrasadasCount = 0;
     let naoIniciadasCount = 0;
+    let encerradasCount = 0;
+    let pausadasCount = 0;
+    let concluidasParcialmenteCount = 0;
     let naoInformadasCount = 0;
     
     uniqueGoalCodes.forEach(code => {
@@ -2837,9 +3007,12 @@ function renderHistoricoAnos() {
       const st = latest ? latest.status : 'Não respondida';
       
       if (st === 'Concluída') concluidasCount++;
+      else if (st === 'Concluída parcialmente') concluidasParcialmenteCount++;
       else if (st === 'Em andamento') emAndamentoCount++;
       else if (st === 'Atrasada') atrasadasCount++;
       else if (st === 'Não iniciada') naoIniciadasCount++;
+      else if (st === 'Encerrada') encerradasCount++;
+      else if (st === 'Pausada') pausadasCount++;
       else naoInformadasCount++;
     });
     
@@ -2863,9 +3036,12 @@ function renderHistoricoAnos() {
       <div class="year-card-body" style="display: ${isFirst ? 'block' : 'none'}; margin-top: 14px;">
         <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px;">
           <span class="status-badge badge-ok">Concluídas: ${concluidasCount}</span>
+          <span class="status-badge badge-ok">Concluídas parcialmente: ${concluidasParcialmenteCount}</span>
           <span class="status-badge badge-ea">Em Andamento: ${emAndamentoCount}</span>
           <span class="status-badge badge-at">Atrasadas: ${atrasadasCount}</span>
           <span class="status-badge badge-ni">Não Iniciadas: ${naoIniciadasCount}</span>
+          <span class="status-badge badge-ni">Encerradas: ${encerradasCount}</span>
+          <span class="status-badge badge-ea">Pausadas: ${pausadasCount}</span>
           <span class="status-badge badge-nao-informado">Não Respondidas: ${naoInformadasCount}</span>
         </div>
 
@@ -3038,99 +3214,5 @@ function showToast(message, type = 'info') {
 
   </script>
 
-  <!-- Complemento pontual: KPIs de Encerradas e Pausadas -->
-  <script>
-    (() => {
-      const normalizeStatus = (value) => String(value || '')
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .trim()
-        .toLowerCase();
-
-      const setKpi = (id, value) => {
-        const element = document.getElementById(id);
-        if (element) element.textContent = Number.isFinite(Number(value)) ? Number(value) : 0;
-      };
-
-      const readCountsFromDonut = () => {
-        try {
-          if (!window.Chart || typeof window.Chart.getChart !== 'function') return null;
-
-          const chart = window.Chart.getChart('donutChart');
-          const labels = chart?.data?.labels;
-          const data = chart?.data?.datasets?.[0]?.data;
-          if (!Array.isArray(labels) || !Array.isArray(data)) return null;
-
-          const normalizedLabels = labels.map(normalizeStatus);
-          const findValue = (singular, plural) => {
-            const index = normalizedLabels.findIndex(label => label === singular || label === plural);
-            return index >= 0 ? Number(data[index] || 0) : null;
-          };
-
-          return {
-            encerradas: findValue('encerrada', 'encerradas'),
-            pausadas: findValue('pausada', 'pausadas')
-          };
-        } catch (_) {
-          return null;
-        }
-      };
-
-      const countStatusesFromRenderedGoals = () => {
-        const container = document.getElementById('goalsListContainer');
-        if (!container) return { encerradas: 0, pausadas: 0 };
-
-        const text = container.innerText || '';
-        const encerradas = (text.match(/\bEncerrada\b/gi) || []).length;
-        const pausadas = (text.match(/\bPausada\b/gi) || []).length;
-        return { encerradas, pausadas };
-      };
-
-      const updateExtraKpis = () => {
-        const chartCounts = readCountsFromDonut();
-        const renderedCounts = countStatusesFromRenderedGoals();
-
-        const encerradas = chartCounts?.encerradas ?? renderedCounts.encerradas;
-        const pausadas = chartCounts?.pausadas ?? renderedCounts.pausadas;
-
-        setKpi('kpiEncerradas', encerradas);
-        setKpi('kpiPausadas', pausadas);
-      };
-
-      const scheduleUpdate = () => {
-        window.setTimeout(updateExtraKpis, 0);
-        window.setTimeout(updateExtraKpis, 150);
-        window.setTimeout(updateExtraKpis, 500);
-      };
-
-      document.addEventListener('DOMContentLoaded', () => {
-        const goalsContainer = document.getElementById('goalsListContainer');
-        if (goalsContainer) {
-          new MutationObserver(scheduleUpdate).observe(goalsContainer, {
-            childList: true,
-            subtree: true,
-            characterData: true
-          });
-        }
-
-        ['selectMesRef', 'selectAnoRef', 'filterStatusSelect', 'searchInput'].forEach(id => {
-          const element = document.getElementById(id);
-          if (!element) return;
-          element.addEventListener('change', scheduleUpdate);
-          element.addEventListener('input', scheduleUpdate);
-        });
-
-        document.addEventListener('click', (event) => {
-          if (event.target.closest('#unitPillsContainer, #btnLimparFiltros')) {
-            scheduleUpdate();
-          }
-        });
-
-        scheduleUpdate();
-        window.setTimeout(updateExtraKpis, 1000);
-        window.setTimeout(updateExtraKpis, 2500);
-      });
-    })();
-  </script>
 </body>
 </html>
